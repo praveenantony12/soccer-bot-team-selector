@@ -1,0 +1,107 @@
+<div class="container">
+  <div class="header">
+    <h2>⚽ Who's in today?</h2>
+    <p class="subtitle">Select players to join the game</p>
+  </div>
+
+  <!-- Players Section -->
+  <div class="section">
+    <h3>Available Players</h3>
+    
+    <!-- Search Bar -->
+    <div class="search-container">
+      <span class="search-icon">🔍</span>
+      <input 
+        type="text" 
+        class="search-input" 
+        placeholder="Search players..."
+        [(ngModel)]="searchTerm"
+        (input)="filterPlayers()"
+      >
+    </div>
+    
+    <!-- Player Count -->
+    <div class="player-count">
+      Showing {{ filteredPlayers.length }} of {{ players.length }} players
+      <span *ngIf="selected.size > 0">| {{ selected.size }} selected</span>
+    </div>
+    
+    <!-- Loader for initial players loading -->
+    <div *ngIf="initialLoading" class="loader-container">
+      <div class="loader"></div>
+      <p>Loading players...</p>
+    </div>
+
+    <!-- Players Grid -->
+    <div *ngIf="!initialLoading && filteredPlayers.length > 0" class="card">
+      <div 
+        class="player"
+        *ngFor="let player of filteredPlayers"
+        (click)="toggle(player)"
+        [class.selected]="selected.has(player)"
+      >
+        <div class="player-avatar">{{ player.charAt(0).toUpperCase() }}</div>
+        <span class="player-name">{{ player | titlecase }}</span>
+        <div class="checkmark" *ngIf="selected.has(player)">✓</div>
+      </div>
+    </div>
+
+    <!-- No Results -->
+    <div *ngIf="!initialLoading && filteredPlayers.length === 0 && players.length > 0" class="no-results">
+      <p>No players found matching "{{ searchTerm }}"</p>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!initialLoading && players.length === 0" class="empty-state">
+      <p>No players available</p>
+    </div>
+  </div>
+
+  <!-- Join Button -->
+  <button 
+    class="join-btn"
+    (click)="submit()"
+    [disabled]="loading || selected.size === 0"
+  >
+    <span *ngIf="!loading" class="btn-content">
+      <span class="btn-icon">⚡</span>
+      Join Game {{ selected.size > 0 ? '(' + selected.size + ')' : '' }}
+    </span>
+    <span *ngIf="loading" class="btn-loading">
+      <div class="btn-loader"></div>
+      Joining...
+    </span>
+  </button>
+
+  <!-- Success Message -->
+  <div *ngIf="success" class="success-message">
+    <div class="success-icon">🎉</div>
+    <p>You're in! Have a great game!</p>
+  </div>
+
+  <!-- Current Players Section -->
+  <div class="section current-section">
+    <div class="section-header">
+      <h3>Players In</h3>
+      <div *ngIf="currentLoading" class="mini-loader"></div>
+    </div>
+    
+    <div *ngIf="currentPlayers.length > 0" class="chips">
+      <span *ngFor="let p of currentPlayers" class="chip">
+        <span class="chip-avatar">{{ p.charAt(0).toUpperCase() }}</span>
+        {{ p | titlecase }}
+        <button 
+          class="chip-leave-btn"
+          (click)="leave(p)"
+          title="Leave game"
+        >
+          ✕
+        </button>
+      </span>
+    </div>
+    
+    <div *ngIf="!currentLoading && currentPlayers.length === 0" class="empty-chips">
+      <p>No players joined yet</p>
+    </div>
+  </div>
+</div>
