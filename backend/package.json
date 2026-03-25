@@ -4,9 +4,12 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev:simple": "node simple-server.js",
+    "dev:unified": "ts-node-dev --respawn --transpile-only unified-server.ts",
     "build": "tsc",
+    "build:unified": "tsc unified-server.ts",
     "start": "node dist/index.js",
-    "dev:simple": "node simple-server.js"
+    "start:unified": "node dist/unified-server.js"
   },
   "dependencies": {
     "body-parser": "^1.20.2",

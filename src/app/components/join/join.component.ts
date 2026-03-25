@@ -12,7 +12,7 @@ import { FormsModule } from '@angular/forms';
 })
 export class JoinComponent implements OnInit, OnDestroy {
 
-  private readonly BASE_URL = 'http://localhost:3000';
+  private readonly BASE_URL = 'https://soccer-bot-unified.onrender.com';
   players: string[] = [];
   filteredPlayers: string[] = [];
   selected = new Set<string>();

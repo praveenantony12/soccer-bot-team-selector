@@ -1,0 +1,30 @@
+services:
+  # Unified Frontend + Backend Service
+  - type: web
+    name: soccer-bot-unified
+    runtime: node
+    plan: free
+    env: node
+    rootDir: backend
+    buildCommand: "npm install && npm run build-unified"
+    startCommand: "npm start-unified"
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: WHATSAPP_GROUP_JID
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_NUMBER
+        sync: false
+      - key: BASE_URL
+        value: https://soccer-bot-unified.onrender.com
+      - key: TZ
+        value: America/New_York
+      - key: LOG_LEVEL
+        value: info
