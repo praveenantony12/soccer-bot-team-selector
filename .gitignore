@@ -45,5 +45,5 @@ __screenshots__/
 Thumbs.db
 
 # Environment files
-.backend/.env
-
+backend/.env
+.env
