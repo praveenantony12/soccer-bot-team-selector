@@ -1,19 +1,15 @@
-import cors from 'cors';
-import express from 'express';
-import { join } from 'path';
-import { fileURLToPath } from 'url';
+const express = require('express');
+const cors = require('cors');
+const { existsSync } = require('fs');
+const { join } = require('path');
+const cron = require('node-cron');
+const twilio = require('twilio');
 
 // Import backend functionality
-import cron from 'node-cron';
-import twilio from 'twilio';
-import { formatInsufficientPlayers, formatReminder, formatTeams } from './src/formatter';
-import { persistentStore } from './src/persistentStore';
-import { getAllPlayerNames, getPlayerByName } from './src/players';
-import { balanceTeams } from './src/teamBalancer';
-
-// Fix __dirname for ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = join(__filename, '..');
+const { persistentStore } = require('./dist/src/persistentStore');
+const { getAllPlayerNames, getPlayerByName } = require('./dist/src/players');
+const { balanceTeams } = require('./dist/src/teamBalancer');
+const { formatInsufficientPlayers, formatReminder, formatTeams } = require('./dist/src/formatter');
 
 const app = express();
 app.use(express.json());
@@ -63,11 +59,11 @@ app.get('*', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-const GROUP_ID = process.env.WHATSAPP_GROUP_JID!;
+const GROUP_ID = process.env.WHATSAPP_GROUP_JID;
 
 const client = twilio(
-  process.env.TWILIO_ACCOUNT_SID!,
-  process.env.TWILIO_AUTH_TOKEN!
+  process.env.TWILIO_ACCOUNT_SID,
+  process.env.TWILIO_AUTH_TOKEN
 );
 
 // 🕘 Reminder - Every minute for testing
@@ -76,7 +72,7 @@ cron.schedule("* * * * *", async () => {
   try {
     await client.messages.create({
       body: formatReminder(),
-      from: process.env.TWILIO_NUMBER!,
+      from: process.env.TWILIO_NUMBER,
       to: GROUP_ID
     });
     console.log("✅ Reminder sent successfully");
@@ -98,7 +94,7 @@ cron.schedule("*/2 * * * *", async () => {
     try {
       await client.messages.create({
         body: formatInsufficientPlayers(names.length),
-        from: process.env.TWILIO_NUMBER!,
+        from: process.env.TWILIO_NUMBER,
         to: GROUP_ID
       });
       console.log("✅ Insufficient players message sent");
@@ -124,7 +120,7 @@ cron.schedule("*/2 * * * *", async () => {
 
     await client.messages.create({
       body: message,
-      from: process.env.TWILIO_NUMBER!,
+      from: process.env.TWILIO_NUMBER,
       to: GROUP_ID
     });
 

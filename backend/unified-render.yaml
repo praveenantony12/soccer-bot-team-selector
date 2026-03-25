@@ -6,8 +6,8 @@ services:
     plan: free
     env: node
     rootDir: backend
-    buildCommand: "npm install && npm run build-unified"
-    startCommand: "npm start-unified"
+    buildCommand: "npm install && npm run build"
+    startCommand: "npm start"
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
