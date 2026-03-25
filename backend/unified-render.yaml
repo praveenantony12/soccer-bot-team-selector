@@ -1,7 +1,7 @@
 services:
   # Frontend + Backend Service
   - type: web
-    name: soccer-bot
+    name: soccer-bot-team-selector
     runtime: node
     plan: free
     env: node
@@ -23,7 +23,7 @@ services:
       - key: TWILIO_NUMBER
         sync: false
       - key: BASE_URL
-        value: https://soccer-bot.render.com
+        value: https://soccer-bot-team-selector.onrender.com
       - key: TZ
         value: America/New_York
       - key: LOG_LEVEL

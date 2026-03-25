@@ -7,10 +7,10 @@
 - WhatsApp Group JID
 - Git repository with your code
 
-## 🎯 Clean URL Deployment
+## 🎯 Repository Name Deployment
 
 **Single service serving both frontend and backend together**
-**URL: https://soccer-bot.render.com**
+**URL: https://soccer-bot-team-selector.onrender.com**
 
 ---
 
@@ -21,14 +21,14 @@ WHATSAPP_GROUP_JID=your-group-jid@g.us
 TWILIO_ACCOUNT_SID=TWILIO_ACCOUNT_SID
 TWILIO_AUTH_TOKEN=TWILIO_AUTH_TOKEN
 TWILIO_NUMBER=TWILIO_NUMBER
-BASE_URL=https://soccer-bot.render.com
+BASE_URL=https://soccer-bot-team-selector.onrender.com
 PORT=3000
 NODE_ENV=production
 TZ=America/New_York
 LOG_LEVEL=info
 ```
 
-## 🚀 Step 2: Deploy Clean Service
+## 🚀 Step 2: Deploy Repository Service
 
 ### 1. Build and Deploy
 ```bash
@@ -37,13 +37,13 @@ npm run build
 
 # Deploy to Render
 git add backend/unified-render.yaml
-git commit -m "Deploy soccer bot with clean URL"
+git commit -m "Deploy soccer bot with repository URL"
 git push
 ```
 
 ### 2. Render Configuration
 The `unified-render.yaml` contains:
-- **Service Name**: soccer-bot
+- **Service Name**: soccer-bot-team-selector
 - **Build Command**: `npm install && npm run build`
 - **Start Command**: `npm start`
 - **Root Directory**: `backend`
@@ -53,7 +53,7 @@ The `unified-render.yaml` contains:
 - **Single Node.js server** serves both API and static files
 - **Frontend** served from `/dist/soccer-bot-team-selector`
 - **Backend API** served from `/api/*` endpoints
-- **Clean URL**: `https://soccer-bot.render.com`
+- **Repository URL**: `https://soccer-bot-team-selector.onrender.com`
 - **Shared persistence** across both frontend and backend
 
 ---
@@ -62,7 +62,7 @@ The `unified-render.yaml` contains:
 
 Frontend is already configured to use:
 ```typescript
-private readonly BASE_URL = 'https://soccer-bot.render.com';
+private readonly BASE_URL = 'https://soccer-bot-team-selector.onrender.com';
 ```
 
 ---
@@ -72,7 +72,7 @@ private readonly BASE_URL = 'https://soccer-bot.render.com';
 ### 1. Test Flow
 ```bash
 # 1. Visit your app
-https://soccer-bot.render.com
+https://soccer-bot-team-selector.onrender.com
 
 # 2. Add players via UI
 # 3. Wait 1-2 minutes for team generation
@@ -83,7 +83,7 @@ https://soccer-bot.render.com
 ### 2. Monitor Service
 ```bash
 # Check health endpoint
-curl https://soccer-bot.render.com/api/health
+curl https://soccer-bot-team-selector.onrender.com/api/health
 
 # Expected response
 {
@@ -96,15 +96,15 @@ curl https://soccer-bot.render.com/api/health
 ### 3. Test API Endpoints
 ```bash
 # Get current players
-curl https://soccer-bot.render.com/api/current
+curl https://soccer-bot-team-selector.onrender.com/api/current
 
 # Test join
-curl -X POST https://soccer-bot.render.com/api/join \
+curl -X POST https://soccer-bot-team-selector.onrender.com/api/join \
   -H "Content-Type: application/json" \
   -d '{"name": "john"}'
 
 # Test leave
-curl -X POST https://soccer-bot.render.com/api/leave \
+curl -X POST https://soccer-bot-team-selector.onrender.com/api/leave \
   -H "Content-Type: application/json" \
   -d '{"name": "john"}'
 ```
@@ -113,14 +113,14 @@ curl -X POST https://soccer-bot.render.com/api/leave \
 
 ## 🔄 Cold Start & Persistence
 
-### ✅ Clean Solution Benefits
+### ✅ Repository URL Benefits
 
 - **Single persistence layer** - no data loss on cold starts
 - **One deployment** - simpler management and debugging
 - **Shared storage** - frontend and backend use same data
 - **Automatic reset** - daily at midnight for fresh games
 - **Cold start proof** - loads from file on restart
-- **Clean URL** - professional appearance
+- **Repository-based URL** - matches your GitHub repo name
 
 ### Persistence Flow
 ```typescript
@@ -171,7 +171,7 @@ cron.schedule("0 19 * * 2,4,0", async () => { ... }); // Tue/Thu/Sun 7 PM
 1. **Upgrade to Render Starter** ($7/month)
 2. **Keep unified service** (simpler and cheaper)
 3. **Add monitoring** with Render's built-in metrics
-4. **Custom domain** (already have clean URL!)
+4. **Custom domain** (optional, repository URL works well)
 
 ### Storage Options:
 - **Current**: File-based persistence (works on free tier)
@@ -183,7 +183,7 @@ cron.schedule("0 19 * * 2,4,0", async () => { ... }); // Tue/Thu/Sun 7 PM
 ## 🎯 Quick Test Checklist
 
 - [ ] Service deployed and healthy
-- [ ] Frontend accessible at https://soccer-bot.render.com
+- [ ] Frontend accessible at https://soccer-bot-team-selector.onrender.com
 - [ ] API endpoints working (`/api/*`)
 - [ ] WhatsApp messages sending correctly
 - [ ] Players persisting after cold starts
@@ -195,32 +195,32 @@ cron.schedule("0 19 * * 2,4,0", async () => { ... }); // Tue/Thu/Sun 7 PM
 
 ## 🏆 Deployment Complete
 
-**Your soccer bot is ready with a clean URL!** 
+**Your soccer bot is ready with repository URL!** 
 
 **Benefits:**
-- ✅ **Clean URL** - https://soccer-bot.render.com
+- ✅ **Repository URL** - https://soccer-bot-team-selector.onrender.com
 - ✅ **Single deployment** - one URL to manage
 - ✅ **Shared persistence** - no data sync issues
 - ✅ **Cold start proof** - survives restarts
 - ✅ **Production ready** - easy to scale
-- ✅ **Professional appearance** - clean branding
+- ✅ **Consistent naming** - matches GitHub repository
 
 ---
 
 ## 🚀 Quick Start Commands
 
 ```bash
-# Deploy service with clean URL
+# Deploy service with repository URL
 npm run build
 git add backend/unified-render.yaml
-git commit -m "Deploy soccer bot with clean URL"
+git commit -m "Deploy soccer bot with repository URL"
 git push
 
 # Monitor deployment
-curl https://soccer-bot.render.com/api/health
+curl https://soccer-bot-team-selector.onrender.com/api/health
 ```
 
-**Deploy with the clean URL for the best experience!** 🎉
+**Deploy with repository URL for the best experience!** 🎉
 
 ## 🆘 Support
 
