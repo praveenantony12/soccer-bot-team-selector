@@ -47,3 +47,4 @@ Thumbs.db
 # Environment files
 backend/.env
 .env
+DEPLOYMENT.md

@@ -6,7 +6,6 @@ import twilio from "twilio";
 
 import { formatInsufficientPlayers, formatReminder, formatTeams } from "./formatter";
 import { getAllPlayerNames, getPlayerByName } from "./players";
-import { addPlayer, clearPlayers, getPlayers, removePlayer } from "./store";
 import { balanceTeams } from "./teamBalancer";
 
 const app = express();
@@ -35,18 +34,18 @@ app.get("/players", (req, res) => {
 });
 
 app.get("/current", (req, res) => {
-  res.json(getPlayers());
+  res.json(persistentStore.getPlayers());
 });
 
 app.post("/join", (req, res) => {
   const { name } = req.body;
-  addPlayer(name);
+  persistentStore.addPlayer(name);
   res.json({ success: true });
 });
 
 app.post("/leave", (req, res) => {
   const { name } = req.body;
-  removePlayer(name);
+  persistentStore.removePlayer(name);
   res.json({ success: true });
 });
 
@@ -55,12 +54,12 @@ app.get("/health", (req, res) => {
   res.json({ 
     status: "ok", 
     timestamp: new Date().toISOString(),
-    players: getPlayers().length 
+    players: persistentStore.getPlayers().length 
   });
 });
 
-// 🕘 Reminder - Every Tuesday, Thursday, and Sunday at 9 AM
-cron.schedule("0 9 * * 2,4,0", async () => {
+// 🕘 Reminder - Every minute for testing (change to "0 9 * * 2,4,0" for production)
+cron.schedule("* * * * *", async () => {
   console.log("Sending reminder...");
   try {
     await client.messages.create({
@@ -74,11 +73,11 @@ cron.schedule("0 9 * * 2,4,0", async () => {
   }
 });
 
-// 🕖 Team generation - Every Tuesday, Thursday, and Sunday at 7 PM
-cron.schedule("0 19 * * 2,4,0", async () => {
+// 🕖 Team generation - Every 2 minutes for testing (change to "0 19 * * 2,4,0" for production)
+cron.schedule("*/2 * * * *", async () => {
   console.log("Generating teams...");
 
-  const names = getPlayers();
+  const names = persistentStore.getPlayers();
   console.log(`Current players: ${names.length}`);
 
   // ✅ NEW LOGIC - Check if we have enough players
@@ -120,7 +119,7 @@ cron.schedule("0 19 * * 2,4,0", async () => {
       to: GROUP_ID
     });
 
-    clearPlayers();
+    persistentStore.clearPlayers();
     console.log("✅ Teams sent + reset");
   } catch (error) {
     console.error("❌ Failed to generate or send teams:", error);
