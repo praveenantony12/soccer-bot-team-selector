@@ -16,7 +16,7 @@ app.use(express.json());
 
 // ✅ Enable CORS
 app.use(cors({
-  origin: ["https://soccer-bot-unified.onrender.com", "http://localhost:4200"],
+  origin: ["https://soccer-bot.render.com", "http://localhost:4200"],
   methods: ["GET","POST"]
 }));
 
