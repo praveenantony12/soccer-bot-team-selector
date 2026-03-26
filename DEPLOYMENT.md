@@ -106,7 +106,7 @@ The file `backend/unified-render.yaml` contains the full Render service configur
 | `TEAM_TIMEZONE` | `America/New_York` |
 | `TEAM_GENERATION_CRON` | `0 3 * * *` | 11:00 AM EDT
 | `MIN_PLAYERS_TO_FORM_TEAMS` | `12` |
-| `ENABLE_MANUAL_GENERATE` | `false` |
+| `ENABLE_MANUAL_GENERATE` | `true` | Temporarily enable to fix cron issue
 
 The `ENABLE_MANUAL_GENERATE=false` hides dev Generate button in production. Teams are formed only by the 11:00 AM cron.
 
