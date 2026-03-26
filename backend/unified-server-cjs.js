@@ -14,12 +14,30 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 const TIMEZONE = process.env.TEAM_TIMEZONE || 'America/New_York';
-const CUTOFF_HOUR = Number(process.env.TEAM_CUTOFF_HOUR || 19); // 7 PM
-const CUTOFF_MINUTE = Number(process.env.TEAM_CUTOFF_MINUTE || 30); // :30
 const MIN_PLAYERS = Number(process.env.MIN_PLAYERS_TO_FORM_TEAMS || 12);
 const TEAM_GENERATION_CRON = process.env.TEAM_GENERATION_CRON || '30 19 * * *';
 const ENABLE_MANUAL_GENERATE =
   process.env.ENABLE_MANUAL_GENERATE === 'true' || process.env.NODE_ENV !== 'production';
+
+// Parse cutoff time from TEAM_GENERATION_CRON
+function parseCutoffTimeFromCron() {
+  const cronParts = TEAM_GENERATION_CRON.split(' ');
+  const minute = parseInt(cronParts[0]) || 30;
+  const hour = parseInt(cronParts[1]) || 19;
+  return { hour, minute };
+}
+
+// Helper function to format cutoff time label dynamically
+function formatCutoffTimeLabel() {
+  const { hour, minute } = parseCutoffTimeFromCron();
+  
+  // Convert to 12-hour format
+  const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const displayMinute = minute.toString().padStart(2, '0');
+  
+  return `${displayHour}:${displayMinute} ${period} EDT`;
+}
 
 // ✅ Enable CORS - More permissive for development
 app.use(cors({
@@ -112,7 +130,7 @@ function getUiState() {
     return {
       phase: 'formed',
       minPlayers: MIN_PLAYERS,
-      cutoffTimeLabel: `7:30 PM EDT`,
+      cutoffTimeLabel: formatCutoffTimeLabel(),
       canGenerateNow: ENABLE_MANUAL_GENERATE,
       teams: {
         blueTeam: formedTeams.team1.players.map(p => p.name),
@@ -126,7 +144,7 @@ function getUiState() {
     return {
       phase: 'insufficient',
       minPlayers: MIN_PLAYERS,
-      cutoffTimeLabel: `7:30 PM EDT`,
+      cutoffTimeLabel: formatCutoffTimeLabel(),
       canGenerateNow: ENABLE_MANUAL_GENERATE,
       message: `Not enough players to form teams. Need at least ${MIN_PLAYERS}.`
     };
@@ -135,7 +153,7 @@ function getUiState() {
   return {
     phase: 'collecting',
     minPlayers: MIN_PLAYERS,
-    cutoffTimeLabel: `7:30 PM EDT`,
+    cutoffTimeLabel: formatCutoffTimeLabel(),
     canGenerateNow: ENABLE_MANUAL_GENERATE
   };
 }
