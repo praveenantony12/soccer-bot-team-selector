@@ -6,6 +6,7 @@ const cron = require('node-cron');
 
 // Import backend functionality
 const { persistentStore } = require('./dist/src/persistentStore');
+const { mongoPersistentStore } = require('./dist/src/mongoPersistentStore');
 const { getAllPlayerNames, getPlayerByName } = require('./dist/src/players');
 const { balanceTeams } = require('./dist/src/teamBalancer');
 
@@ -18,6 +19,17 @@ const MIN_PLAYERS = Number(process.env.MIN_PLAYERS_TO_FORM_TEAMS || 12);
 const TEAM_GENERATION_CRON = process.env.TEAM_GENERATION_CRON || '30 19 * * *';
 const ENABLE_MANUAL_GENERATE =
   process.env.ENABLE_MANUAL_GENERATE === 'true' || process.env.NODE_ENV !== 'production';
+
+// Choose persistent store based on environment
+function getPersistentStore() {
+  // Use MongoDB if available and configured, otherwise fall back to file storage
+  if (process.env.MONGODB_URI && mongoPersistentStore) {
+    console.log('🗃️ Using MongoDB persistent store');
+    return mongoPersistentStore;
+  }
+  console.log('📁 Using file-based persistent store');
+  return persistentStore;
+}
 
 // Parse cutoff time from TEAM_GENERATION_CRON
 function parseCutoffTimeFromCron() {
@@ -66,8 +78,9 @@ app.get("/api/players", (req, res) => {
 });
 
 function ensureDailyReset() {
-  if (persistentStore.getLastResetKey() !== persistentStore.getTodayKey()) {
-    persistentStore.resetForNewDay();
+  const store = getPersistentStore();
+  if (store.getLastResetKey() !== store.getTodayKey()) {
+    store.resetForNewDay();
   }
 }
 
@@ -96,14 +109,11 @@ function buildPlayers(names) {
 function generateTeamsForToday(source = 'manual') {
   ensureDailyReset();
 
-  const names = persistentStore.getPlayers();
+  const store = getPersistentStore();
+  const names = store.getPlayers();
   if (names.length < MIN_PLAYERS) {
-    persistentStore.markInsufficient();
-    return {
-      ok: false,
-      error: `Not enough players to form teams. Need at least ${MIN_PLAYERS}.`,
-      count: names.length
-    };
+    store.markInsufficient();
+    return { ok: false, error: `Not enough players to form teams. Need at least ${MIN_PLAYERS}.`, count: names.length };
   }
 
   const players = buildPlayers(names);
@@ -125,8 +135,8 @@ function generateTeamsForToday(source = 'manual') {
     generatedAt: new Date().toISOString()
   };
 
-  persistentStore.saveTeams(normalized);
-  persistentStore.clearPlayers();
+  store.saveTeams(normalized);
+  store.clearPlayers();
 
   return { ok: true, result: normalized };
 }
@@ -134,8 +144,10 @@ function generateTeamsForToday(source = 'manual') {
 function getUiState() {
   ensureDailyReset();
   
+  const store = getPersistentStore();
+  
   // Check if teams should be generated automatically (cron backup)
-  if (!ENABLE_MANUAL_GENERATE && isAfterCutoffNow() && persistentStore.getDailyStatus() === 'collecting') {
+  if (!ENABLE_MANUAL_GENERATE && isAfterCutoffNow() && store.getDailyStatus() === 'collecting') {
     console.log('🔄 Auto-generating teams (cron backup check)');
     const generated = generateTeamsForToday('cron-backup');
     if (generated.ok) {
@@ -144,8 +156,8 @@ function getUiState() {
   }
 
   // Re-fetch status after potential team generation
-  const dailyStatus = persistentStore.getDailyStatus();
-  const formedTeams = persistentStore.getFormedTeams();
+  const dailyStatus = store.getDailyStatus();
+  const formedTeams = store.getFormedTeams();
 
   if (dailyStatus === 'formed' && formedTeams) {
     return {
@@ -181,7 +193,8 @@ function getUiState() {
 
 app.get("/api/current", (req, res) => {
   ensureDailyReset();
-  const currentPlayers = persistentStore.getPlayers();
+  const store = getPersistentStore();
+  const currentPlayers = store.getPlayers();
 
   res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.set('Pragma', 'no-cache');
@@ -191,11 +204,12 @@ app.get("/api/current", (req, res) => {
 
 app.post("/api/join", (req, res) => {
   ensureDailyReset();
+  const store = getPersistentStore();
   const { name } = req.body;
 
-  if (persistentStore.getDailyStatus() === 'formed') {
+  if (store.getDailyStatus() === 'formed') {
     if (ENABLE_MANUAL_GENERATE) {
-      persistentStore.resetForNewDay();
+      store.resetForNewDay();
     } else {
       return res.status(400).json({ error: 'Join is closed for today. Teams already finalized.' });
     }
@@ -205,7 +219,7 @@ app.post("/api/join", (req, res) => {
     return res.status(400).json({ error: 'Player name is required.' });
   }
 
-  persistentStore.addPlayer(name);
+  store.addPlayer(name);
   res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
@@ -214,8 +228,9 @@ app.post("/api/join", (req, res) => {
 
 app.post("/api/leave", (req, res) => {
   ensureDailyReset();
+  const store = getPersistentStore();
   const { name } = req.body;
-  persistentStore.removePlayer(name);
+  store.removePlayer(name);
   res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
@@ -224,7 +239,8 @@ app.post("/api/leave", (req, res) => {
 
 app.get("/api/teams", (req, res) => {
   ensureDailyReset();
-  const formedTeams = persistentStore.getFormedTeams();
+  const store = getPersistentStore();
+  const formedTeams = store.getFormedTeams();
   if (formedTeams) {
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.set('Pragma', 'no-cache');
@@ -277,17 +293,19 @@ app.post('/api/reset', (req, res) => {
   if (!ENABLE_MANUAL_GENERATE) {
     return res.status(403).json({ error: 'Reset is disabled in production.' });
   }
-  persistentStore.resetForNewDay();
+  const store = getPersistentStore();
+  store.resetForNewDay();
   res.json({ success: true, message: 'State reset to collecting.' });
 });
 
 app.get("/api/health", (req, res) => {
   ensureDailyReset();
+  const store = getPersistentStore();
   res.json({ 
     status: "ok", 
     timestamp: new Date().toISOString(),
-    players: persistentStore.getPlayers().length,
-    phase: persistentStore.getDailyStatus()
+    players: store.getPlayers().length,
+    phase: store.getDailyStatus()
   });
 });
 

@@ -107,6 +107,8 @@ The file `backend/unified-render.yaml` contains the full Render service configur
 | `TEAM_GENERATION_CRON` | `59 3 * * *` | 11:59 PM EDT (3:59 AM UTC next day)
 | `MIN_PLAYERS_TO_FORM_TEAMS` | `12` |
 | `ENABLE_MANUAL_GENERATE` | `true` | Temporarily enable to fix cron issue
+| `MONGODB_URI` | `your_mongodb_connection_string` | MongoDB Atlas connection string
+| `MONGODB_DB_NAME` | `soccer-bot` | Database name (optional) |
 
 The `ENABLE_MANUAL_GENERATE=false` hides dev Generate button in production. Teams are formed only by the 11:59 PM cron.
 
@@ -120,6 +122,29 @@ Since EDT = UTC-4, add 4 hours to your target time to get UTC cron hour:
 | 10:00 PM EDT | 2:00 AM UTC | `0 2 * * *` |
 | 11:00 PM EDT | 3:00 AM UTC | `0 3 * * *` |
 | 11:59 PM EDT | 3:59 AM UTC | `59 3 * * *` |
+
+### MongoDB Atlas Setup (Recommended)
+To fix Render's ephemeral storage issue, set up a free MongoDB Atlas database:
+
+1. **Create MongoDB Atlas Account**: https://www.mongodb.com/cloud/atlas
+2. **Create Free Cluster**: 
+   - Choose "M0 Sandbox" (free tier)
+   - Select a cloud provider near your users
+3. **Get Connection String**:
+   - Click "Connect" → "Connect your application"
+   - Copy the connection string
+   - Replace `<password>` with your database password
+4. **Add to Render Environment**:
+   ```
+   MONGODB_URI = mongodb+srv://username:password@cluster.mongodb.net/soccer-bot?retryWrites=true&w=majority
+   MONGODB_DB_NAME = soccer-bot
+   ```
+
+**Benefits**: 
+- ✅ Persistent data through Render restarts
+- ✅ Free 512MB storage (plenty for this app)
+- ✅ Automatic backups
+- ✅ Better performance than file storage
 
 ### Deployed URL
 
