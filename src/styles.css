@@ -4,6 +4,10 @@ body {
   display: flow-root; 
 }
 
+h2 {
+  margin-top: .2rem;
+}
+
 .deadline-text p {
   text-align: left !important;
 }
