@@ -27,16 +27,26 @@ function parseCutoffTimeFromCron() {
   return { hour, minute };
 }
 
-// Helper function to format cutoff time label dynamically
+// Helper function to format cutoff time label dynamically with proper timezone conversion
 function formatCutoffTimeLabel() {
   const { hour, minute } = parseCutoffTimeFromCron();
   
-  // Convert to 12-hour format
-  const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
-  const period = hour >= 12 ? 'PM' : 'AM';
-  const displayMinute = minute.toString().padStart(2, '0');
+  // Create a date object for "today" at that UTC hour/minute
+  const date = new Date();
+  date.setUTCHours(hour, minute, 0, 0);
+
+  // Use Intl.DateTimeFormat to show the time in the server's timezone
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: TIMEZONE,
+    timeZoneName: 'short'
+  });
   
-  return `${displayHour}:${displayMinute} ${period} EDT`;
+  const formatted = formatter.format(date);
+  // Extract time and timezone parts (e.g., "11:00 PM EDT" from "3/25/2026, 11:00 PM EDT")
+  const timeMatch = formatted.match(/(\d{1,2}:\d{2}\s[AP]M)\s([A-Z]{3,4})/);
+  return timeMatch ? `${timeMatch[1]} ${timeMatch[2]}` : formatted;
 }
 
 // ✅ Enable CORS - More permissive for development
