@@ -35,8 +35,10 @@ async function connectToMongoDB() {
         console.log('🔄 Connecting to MongoDB...');
         client = new mongodb_1.MongoClient(MONGODB_URI, {
             maxPoolSize: 10,
-            serverSelectionTimeoutMS: 5000,
-            socketTimeoutMS: 45000,
+            serverSelectionTimeoutMS: 3000, // Faster timeout
+            socketTimeoutMS: 10000, // Faster timeout
+            retryWrites: true,
+            w: 'majority'
         });
         await client.connect();
         db = client.db(DB_NAME);
@@ -49,14 +51,14 @@ async function connectToMongoDB() {
     catch (error) {
         console.error('❌ MongoDB connection failed:', error);
         connectionRetries++;
-        if (connectionRetries < MAX_RETRIES) {
-            console.log(`🔄 Retrying MongoDB connection (${connectionRetries}/${MAX_RETRIES})...`);
-            await new Promise(resolve => setTimeout(resolve, 2000 * connectionRetries));
+        if (connectionRetries < 2) { // Only retry once
+            console.log(`🔄 Retrying MongoDB connection (${connectionRetries}/2)...`);
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Shorter delay
             return connectToMongoDB();
         }
         else {
-            console.error('❌ Max MongoDB connection retries reached');
-            throw error;
+            console.error('❌ MongoDB connection failed permanently, switching to file storage');
+            throw error; // Let the caller handle the fallback
         }
     }
     finally {

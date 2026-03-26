@@ -21,14 +21,35 @@ const ENABLE_MANUAL_GENERATE =
   process.env.ENABLE_MANUAL_GENERATE === 'true' || process.env.NODE_ENV !== 'production';
 
 // Choose persistent store based on environment
+let selectedStore = null;
+let storeSelectionAttempted = false;
+
 function getPersistentStore() {
-  // Use MongoDB if available and configured, otherwise fall back to file storage
-  if (process.env.MONGODB_URI && mongoPersistentStore) {
-    console.log('🗃️ Using MongoDB persistent store');
-    return mongoPersistentStore;
-  }
-  console.log('📁 Using file-based persistent store');
+  // TEMPORARY: Disable MongoDB due to connection issues
+  // TODO: Fix MongoDB Atlas SSL connection and re-enable
+  console.log('📁 Using file-based persistent store (MongoDB temporarily disabled)');
   return persistentStore;
+  
+  /*
+  if (storeSelectionAttempted && selectedStore) {
+    return selectedStore;
+  }
+  
+  if (!storeSelectionAttempted) {
+    storeSelectionAttempted = true;
+    
+    // Use MongoDB if available and configured, otherwise fall back to file storage
+    if (process.env.MONGODB_URI && mongoPersistentStore) {
+      console.log('🗃️ MongoDB configured, attempting connection...');
+      selectedStore = mongoPersistentStore;
+    } else {
+      console.log('📁 Using file-based persistent store (MongoDB not configured)');
+      selectedStore = persistentStore;
+    }
+  }
+  
+  return selectedStore;
+  */
 }
 
 // Parse cutoff time from TEAM_GENERATION_CRON
