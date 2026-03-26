@@ -6,7 +6,7 @@ const cron = require('node-cron');
 
 // Import backend functionality
 const { persistentStore } = require('./dist/src/persistentStore');
-const { mongoPersistentStore } = require('./dist/src/mongoPersistentStore');
+const { supabaseStore } = require('./dist/src/supabaseStore');
 const { getAllPlayerNames, getPlayerByName } = require('./dist/src/players');
 const { balanceTeams } = require('./dist/src/teamBalancer');
 
@@ -20,36 +20,15 @@ const TEAM_GENERATION_CRON = process.env.TEAM_GENERATION_CRON || '30 19 * * *';
 const ENABLE_MANUAL_GENERATE =
   process.env.ENABLE_MANUAL_GENERATE === 'true' || process.env.NODE_ENV !== 'production';
 
-// Choose persistent store based on environment
-let selectedStore = null;
-let storeSelectionAttempted = false;
-
 function getPersistentStore() {
-  // TEMPORARY: Disable MongoDB due to connection issues
-  // TODO: Fix MongoDB Atlas SSL connection and re-enable
-  console.log('📁 Using file-based persistent store (MongoDB temporarily disabled)');
+  // PRIORITIZE: Supabase > File storage
+  if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY && supabaseStore) {
+    console.log('🗄️ Using Supabase persistent store');
+    return supabaseStore;
+  }
+  
+  console.log('📁 Using file-based persistent store (Supabase not configured)');
   return persistentStore;
-  
-  /*
-  if (storeSelectionAttempted && selectedStore) {
-    return selectedStore;
-  }
-  
-  if (!storeSelectionAttempted) {
-    storeSelectionAttempted = true;
-    
-    // Use MongoDB if available and configured, otherwise fall back to file storage
-    if (process.env.MONGODB_URI && mongoPersistentStore) {
-      console.log('🗃️ MongoDB configured, attempting connection...');
-      selectedStore = mongoPersistentStore;
-    } else {
-      console.log('📁 Using file-based persistent store (MongoDB not configured)');
-      selectedStore = persistentStore;
-    }
-  }
-  
-  return selectedStore;
-  */
 }
 
 // Parse cutoff time from TEAM_GENERATION_CRON

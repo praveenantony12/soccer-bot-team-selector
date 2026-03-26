@@ -107,8 +107,8 @@ The file `backend/unified-render.yaml` contains the full Render service configur
 | `TEAM_GENERATION_CRON` | `59 3 * * *` | 11:59 PM EDT (3:59 AM UTC next day)
 | `MIN_PLAYERS_TO_FORM_TEAMS` | `12` |
 | `ENABLE_MANUAL_GENERATE` | `true` | Temporarily enable to fix cron issue
-| `MONGODB_URI` | `your_mongodb_connection_string` | MongoDB Atlas connection string
-| `MONGODB_DB_NAME` | `soccer-bot` | Database name (optional) |
+| `SUPABASE_URL` | `your_supabase_project_url` | Supabase project URL
+| `SUPABASE_ANON_KEY` | `your_supabase_anon_key` | Supabase anonymous key |
 
 The `ENABLE_MANUAL_GENERATE=false` hides dev Generate button in production. Teams are formed only by the 11:59 PM cron.
 
@@ -123,28 +123,43 @@ Since EDT = UTC-4, add 4 hours to your target time to get UTC cron hour:
 | 11:00 PM EDT | 3:00 AM UTC | `0 3 * * *` |
 | 11:59 PM EDT | 3:59 AM UTC | `59 3 * * *` |
 
-### MongoDB Atlas Setup (Recommended)
-To fix Render's ephemeral storage issue, set up a free MongoDB Atlas database:
+### Supabase Setup (Recommended)
+To fix Render's ephemeral storage issue, set up a free Supabase database:
 
-1. **Create MongoDB Atlas Account**: https://www.mongodb.com/cloud/atlas
-2. **Create Free Cluster**: 
-   - Choose "M0 Sandbox" (free tier)
-   - Select a cloud provider near your users
-3. **Get Connection String**:
-   - Click "Connect" → "Connect your application"
-   - Copy the connection string
-   - Replace `<password>` with your database password
-4. **Add to Render Environment**:
+1. **Create Supabase Account**: https://supabase.com
+2. **Create New Project**:
+   - Click "New Project"
+   - Choose organization
+   - Set project name: `soccer-bot`
+   - Set database password (save it!)
+   - Choose region closest to your users
+3. **Create Table**:
+   - Go to "Table Editor" → "Create a new table"
+   - Table name: `daily_data`
+   - Columns:
+     - `date` (text, primary key)
+     - `current_players` (json)
+     - `last_reset` (text)
+     - `formed_teams` (json)
+     - `daily_status` (text)
+     - `last_processed_date` (text)
+     - `created_at` (timestamp, default: now())
+     - `updated_at` (timestamp, default: now())
+4. **Get Credentials**:
+   - Go to Project Settings → API
+   - Copy the "Project URL" and "anon public" key
+5. **Add to Render Environment**:
    ```
-   MONGODB_URI = mongodb+srv://username:password@cluster.mongodb.net/soccer-bot?retryWrites=true&w=majority
-   MONGODB_DB_NAME = soccer-bot
+   SUPABASE_URL = https://your-project-id.supabase.co
+   SUPABASE_ANON_KEY = your_supabase_anon_key
    ```
 
 **Benefits**: 
 - ✅ Persistent data through Render restarts
-- ✅ Free 512MB storage (plenty for this app)
-- ✅ Automatic backups
-- ✅ Better performance than file storage
+- ✅ Free tier with generous limits
+- ✅ Built-in PostgreSQL database
+- ✅ Real-time capabilities
+- ✅ Better connection reliability than MongoDB
 
 ### Deployed URL
 
