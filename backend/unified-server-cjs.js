@@ -143,6 +143,7 @@ function getUiState() {
     }
   }
 
+  // Re-fetch status after potential team generation
   const dailyStatus = persistentStore.getDailyStatus();
   const formedTeams = persistentStore.getFormedTeams();
 
