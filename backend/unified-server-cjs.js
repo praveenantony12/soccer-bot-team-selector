@@ -72,10 +72,11 @@ function ensureDailyReset() {
 }
 
 function isAfterCutoffNow() {
+  const { hour: cutoffHour, minute: cutoffMinute } = parseCutoffTimeFromCron();
   const easternNow = new Date(new Date().toLocaleString('en-US', { timeZone: TIMEZONE }));
-  if (easternNow.getHours() > CUTOFF_HOUR) return true;
-  if (easternNow.getHours() < CUTOFF_HOUR) return false;
-  return easternNow.getMinutes() >= CUTOFF_MINUTE;
+  if (easternNow.getHours() > cutoffHour) return true;
+  if (easternNow.getHours() < cutoffHour) return false;
+  return easternNow.getMinutes() >= cutoffMinute;
 }
 
 function sortPlayersByName(players) {
@@ -288,16 +289,29 @@ app.get('*', (req, res) => {
   res.sendFile(frontendIndexPath);
 });
 
-// 🕢 Team generation at 7:30 PM EDT (configurable)
+// 🕢 Team generation at cutoff time (configurable)
 cron.schedule(TEAM_GENERATION_CRON, async () => {
+  console.log('⏰ Cron triggered at:', new Date().toISOString());
+  console.log('⏰ Cron schedule:', TEAM_GENERATION_CRON);
+  console.log('⏰ Timezone:', TIMEZONE);
   console.log('Generating teams at cutoff...');
   const generated = generateTeamsForToday('cron');
   if (!generated.ok) {
     console.log(`❌ ${generated.error} (current: ${generated.count})`);
     return;
   }
-  console.log('✅ Teams formed and finalized for today.');
-}, { timezone: TIMEZONE });
+  console.log('✅ Teams generated successfully via cron');
+});
+
+// Debug: Check current time vs cutoff
+setInterval(() => {
+  const now = new Date();
+  const { hour: cutoffHour, minute: cutoffMinute } = parseCutoffTimeFromCron();
+  const localNow = new Date(now.toLocaleString('en-US', { timeZone: TIMEZONE }));
+  console.log(`🕐 Current time: ${localNow.getHours()}:${localNow.getMinutes().toString().padStart(2, '0')} ${TIMEZONE}`);
+  console.log(`🕐 Cutoff time: ${cutoffHour}:${cutoffMinute.toString().padStart(2, '0')} UTC`);
+  console.log(`🕐 After cutoff: ${isAfterCutoffNow()}`);
+}, 60000); // Check every minute
 
 app.listen(PORT, () => {
   console.log(`🚀 Unified Soccer Bot running on port ${PORT}`);

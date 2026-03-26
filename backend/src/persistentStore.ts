@@ -1,4 +1,4 @@
-import { writeFileSync, readFileSync, existsSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
 const DATA_FILE = join(process.cwd(), 'players.json');
@@ -161,7 +161,7 @@ export class PersistentStore {
 
   getTodayKey(): string {
     return new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'America/New_York',
+      timeZone: process.env.TEAM_TIMEZONE || 'America/New_York',
       year: 'numeric',
       month: '2-digit',
       day: '2-digit'
