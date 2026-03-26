@@ -46,10 +46,13 @@ Thumbs.db
 
 # Environment files
 backend/.env
+backend/.env.local
 .env
+.env.local
 
 # Runtime/state files
 backend/players.json
+backend/test-store.js
 
 # Accidental generated backend artifacts
 backend/dist/src/emailService.js

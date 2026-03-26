@@ -18,13 +18,16 @@ interface UiStateResponse {
 }
 
 interface GeneratedTeamsResponse {
-  team1: {
-    players: Array<{ name: string }>;
+  success: boolean;
+  teams: {
+    team1: {
+      players: Array<{ name: string }>;
+    };
+    team2: {
+      players: Array<{ name: string }>;
+    };
+    generatedAt?: string;
   };
-  team2: {
-    players: Array<{ name: string }>;
-  };
-  generatedAt?: string;
 }
 
 @Component({
@@ -99,15 +102,16 @@ export class App implements OnInit {
       })
     ).subscribe({
       next: (generated) => {
+        const t = generated.teams;
         this.uiState = {
           phase: 'formed',
           minPlayers: this.uiState?.minPlayers ?? 12,
           cutoffTimeLabel: this.uiState?.cutoffTimeLabel ?? '7:30 PM EDT',
           canGenerateNow: this.uiState?.canGenerateNow ?? true,
           teams: {
-            blueTeam: generated.team1.players.map((player) => player.name),
-            redTeam: generated.team2.players.map((player) => player.name),
-            generatedAt: generated.generatedAt || null
+            blueTeam: t.team1.players.map((player) => player.name),
+            redTeam: t.team2.players.map((player) => player.name),
+            generatedAt: t.generatedAt || null
           }
         };
         this.error = null;

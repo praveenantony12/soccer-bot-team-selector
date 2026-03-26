@@ -112,11 +112,9 @@ export class JoinComponent implements OnInit {
     this.loading = true;
     this.success = false;
 
-    const calls = Array.from(this.selected).map(name =>
-      this.http.post(`${this.BASE_URL}/api/join`, { name }).toPromise()
-    );
-
-    Promise.all(calls).then(() => {
+    const names = Array.from(this.selected);
+    this.http.post(`${this.BASE_URL}/api/join`, { names }).subscribe({
+      next: () => {
       this.loading = false;
       this.success = true;
       this.selected.clear();
@@ -124,8 +122,10 @@ export class JoinComponent implements OnInit {
       setTimeout(() => {
         this.success = false;
       }, 3000);
-    }).catch(() => {
-      this.loading = false;
+      },
+      error: () => {
+        this.loading = false;
+      }
     });
   }
 

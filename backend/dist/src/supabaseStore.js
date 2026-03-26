@@ -17,7 +17,7 @@ class SupabasePersistentStore {
     async initialize() {
         try {
             const supabaseUrl = process.env.SUPABASE_URL;
-            const supabaseKey = process.env.SUPABASE_ANON_KEY;
+            const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
             if (!supabaseUrl || !supabaseKey) {
                 console.log('⚠️ Supabase credentials not provided, falling back to file storage');
                 return;
@@ -107,8 +107,7 @@ class SupabasePersistentStore {
         }
         catch (error) {
             console.error('❌ Error loading data from Supabase:', error);
-            // Fallback to empty state
-            return await this.createNewDay();
+            throw error;
         }
     }
     async createNewDay() {
@@ -145,17 +144,7 @@ class SupabasePersistentStore {
         }
         catch (error) {
             console.error('❌ Error creating new daily data:', error);
-            // Return in-memory data as fallback
-            return {
-                date: today,
-                current_players: [],
-                last_reset: today,
-                formed_teams: null,
-                daily_status: 'collecting',
-                last_processed_date: '',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            };
+            throw error;
         }
     }
     async saveData(data) {
@@ -163,19 +152,20 @@ class SupabasePersistentStore {
             const supabase = await this.getSupabase();
             const today = this.getTodayKey();
             const updateData = {
+                date: today,
                 ...data,
                 updated_at: new Date().toISOString()
             };
             const { error } = await supabase
                 .from('daily_data')
-                .update(updateData)
-                .eq('date', today);
+                .upsert(updateData, { onConflict: 'date' });
             if (error)
                 throw error;
             console.log('💾 Saved persistent data to Supabase');
         }
         catch (error) {
             console.error('❌ Error saving data to Supabase:', error);
+            throw error;
         }
     }
     async getPlayers() {

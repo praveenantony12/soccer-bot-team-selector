@@ -3,6 +3,21 @@ const cors = require('cors');
 const { join } = require('path');
 const { existsSync } = require('fs');
 const cron = require('node-cron');
+try {
+  const dotenv = require('dotenv');
+  const { existsSync: _exists } = require('fs');
+  const { join: _join } = require('path');
+  const localEnv = _join(__dirname, '.env.local');
+  if (_exists(localEnv)) {
+    dotenv.config({ path: localEnv, override: true });
+    console.log('🔧 Loaded .env.local (local dev)');
+  } else {
+    dotenv.config();
+    console.log('🔧 Loaded .env (production/Render)');
+  }
+} catch (error) {
+  console.log('ℹ️ dotenv not installed, using process environment variables');
+}
 
 // Import backend functionality
 const { persistentStore } = require('./dist/src/persistentStore');
@@ -20,15 +35,40 @@ const TEAM_GENERATION_CRON = process.env.TEAM_GENERATION_CRON || '30 19 * * *';
 const ENABLE_MANUAL_GENERATE =
   process.env.ENABLE_MANUAL_GENERATE === 'true' || process.env.NODE_ENV !== 'production';
 
-function getPersistentStore() {
-  // PRIORITIZE: Supabase > File storage
-  if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY && supabaseStore) {
-    console.log('🗄️ Using Supabase persistent store');
-    return supabaseStore;
+let mutationQueue = Promise.resolve();
+
+function runMutation(task) {
+  const next = mutationQueue.then(task, task);
+  mutationQueue = next.catch(() => undefined);
+  return next;
+}
+
+// Determined once at startup — avoids re-checking env vars on every request
+let activeStore = persistentStore;
+
+async function initActiveStore() {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.log('📁 Supabase credentials not set — using file-based persistent store');
+    activeStore = persistentStore;
+    return;
   }
-  
-  console.log('📁 Using file-based persistent store (Supabase not configured)');
-  return persistentStore;
+
+  try {
+    // Force initialization to complete and verify it actually works
+    const players = await supabaseStore.getPlayers();
+    console.log(`✅ Supabase store verified — using Supabase for persistence (${players.length} players today)`);
+    activeStore = supabaseStore;
+  } catch (e) {
+    console.error('❌ Supabase store init failed, falling back to file storage:', e.message);
+    activeStore = persistentStore;
+  }
+}
+
+function getPersistentStore() {
+  return activeStore;
 }
 
 // Parse cutoff time from TEAM_GENERATION_CRON
@@ -77,10 +117,17 @@ app.get("/api/players", (req, res) => {
   res.json(getAllPlayerNames());
 });
 
-function ensureDailyReset() {
-  const store = getPersistentStore();
-  if (store.getLastResetKey() !== store.getTodayKey()) {
-    store.resetForNewDay();
+async function ensureDailyReset() {
+  try {
+    const store = getPersistentStore();
+    const lastReset = await Promise.resolve(store.getLastResetKey());
+    const todayKey = store.getTodayKey();
+    if (lastReset !== todayKey) {
+      console.log(`🔄 New day detected (last: ${lastReset}, today: ${todayKey}), resetting`);
+      await Promise.resolve(store.resetForNewDay());
+    }
+  } catch (e) {
+    console.error('⚠️ ensureDailyReset error (non-fatal):', e.message);
   }
 }
 
@@ -106,13 +153,13 @@ function buildPlayers(names) {
   });
 }
 
-function generateTeamsForToday(source = 'manual') {
-  ensureDailyReset();
+async function generateTeamsForToday(source = 'manual') {
+  await ensureDailyReset();
 
   const store = getPersistentStore();
-  const names = store.getPlayers();
+  const names = await Promise.resolve(store.getPlayers());
   if (names.length < MIN_PLAYERS) {
-    store.markInsufficient();
+    await Promise.resolve(store.markInsufficient());
     return { ok: false, error: `Not enough players to form teams. Need at least ${MIN_PLAYERS}.`, count: names.length };
   }
 
@@ -135,29 +182,30 @@ function generateTeamsForToday(source = 'manual') {
     generatedAt: new Date().toISOString()
   };
 
-  store.saveTeams(normalized);
-  store.clearPlayers();
+  await Promise.resolve(store.saveTeams(normalized));
+  await Promise.resolve(store.clearPlayers());
 
   return { ok: true, result: normalized };
 }
 
-function getUiState() {
-  ensureDailyReset();
+async function getUiState() {
+  await ensureDailyReset();
   
   const store = getPersistentStore();
   
   // Check if teams should be generated automatically (cron backup)
-  if (!ENABLE_MANUAL_GENERATE && isAfterCutoffNow() && store.getDailyStatus() === 'collecting') {
+  const dailyStatusNow = await Promise.resolve(store.getDailyStatus());
+  if (!ENABLE_MANUAL_GENERATE && isAfterCutoffNow() && dailyStatusNow === 'collecting') {
     console.log('🔄 Auto-generating teams (cron backup check)');
-    const generated = generateTeamsForToday('cron-backup');
+    const generated = await generateTeamsForToday('cron-backup');
     if (generated.ok) {
       console.log('✅ Teams generated via cron backup');
     }
   }
 
   // Re-fetch status after potential team generation
-  const dailyStatus = store.getDailyStatus();
-  const formedTeams = store.getFormedTeams();
+  const dailyStatus = await Promise.resolve(store.getDailyStatus());
+  const formedTeams = await Promise.resolve(store.getFormedTeams());
 
   if (dailyStatus === 'formed' && formedTeams) {
     return {
@@ -192,7 +240,7 @@ function getUiState() {
 }
 
 app.get("/api/current", async (req, res) => {
-  ensureDailyReset();
+  await ensureDailyReset();
   const store = getPersistentStore();
   const currentPlayers = await Promise.resolve(store.getPlayers());
 
@@ -203,44 +251,61 @@ app.get("/api/current", async (req, res) => {
 });
 
 app.post("/api/join", async (req, res) => {
-  ensureDailyReset();
+  await ensureDailyReset();
   const store = getPersistentStore();
-  const { name } = req.body;
+  const { name, names } = req.body;
 
-  if (store.getDailyStatus() === 'formed') {
+  const requestedNames = Array.isArray(names)
+    ? names.filter(player => typeof player === 'string')
+    : [name].filter(player => typeof player === 'string');
+
+  if (requestedNames.length === 0) {
+    return res.status(400).json({ error: 'Player name is required.' });
+  }
+
+  const dailyStatus = await Promise.resolve(store.getDailyStatus());
+  if (dailyStatus === 'formed') {
     if (ENABLE_MANUAL_GENERATE) {
-      store.resetForNewDay();
+      await Promise.resolve(store.resetForNewDay());
     } else {
       return res.status(400).json({ error: 'Join is closed for today. Teams already finalized.' });
     }
   }
 
-  if (!name || typeof name !== 'string') {
-    return res.status(400).json({ error: 'Player name is required.' });
+  try {
+    await runMutation(async () => {
+      for (const playerName of requestedNames) {
+        await Promise.resolve(store.addPlayer(playerName));
+      }
+    });
+  } catch (error) {
+    console.error('❌ Failed to persist join request:', error);
+    return res.status(500).json({ success: false, error: 'Failed to persist players' });
   }
 
-  await Promise.resolve(store.addPlayer(name));
   res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
-  res.json({ success: true });
+  res.json({ success: true, added: requestedNames.length });
 });
 
 app.post("/api/leave", async (req, res) => {
-  ensureDailyReset();
+  await ensureDailyReset();
   const store = getPersistentStore();
   const { name } = req.body;
-  await Promise.resolve(store.removePlayer(name));
+  await runMutation(async () => {
+    await Promise.resolve(store.removePlayer(name));
+  });
   res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
   res.json({ success: true });
 });
 
-app.get("/api/teams", (req, res) => {
-  ensureDailyReset();
+app.get("/api/teams", async (req, res) => {
+  await ensureDailyReset();
   const store = getPersistentStore();
-  const formedTeams = store.getFormedTeams();
+  const formedTeams = await Promise.resolve(store.getFormedTeams());
   if (formedTeams) {
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.set('Pragma', 'no-cache');
@@ -250,20 +315,20 @@ app.get("/api/teams", (req, res) => {
   return res.json({ error: 'Teams not formed yet' });
 });
 
-app.get('/api/ui-state', (req, res) => {
+app.get('/api/ui-state', async (req, res) => {
   res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
-  return res.json(getUiState());
+  return res.json(await getUiState());
 });
 
 // 🔧 Manual team generation (for testing)
-app.post("/api/teams/generate", (req, res) => {
+app.post("/api/teams/generate", async (req, res) => {
   if (!ENABLE_MANUAL_GENERATE) {
     return res.status(403).json({ error: 'Manual team generation is disabled.' });
   }
 
-  const generated = generateTeamsForToday('manual-button');
+  const generated = await generateTeamsForToday('manual-button');
   if (!generated.ok) {
     return res.status(400).json({ error: generated.error, count: generated.count });
   }
@@ -275,9 +340,9 @@ app.post("/api/teams/generate", (req, res) => {
 });
 
 // 🔧 Debug endpoint - always allows manual generation (bypasses ENABLE_MANUAL_GENERATION)
-app.post("/api/teams/generate-debug", (req, res) => {
+app.post("/api/teams/generate-debug", async (req, res) => {
   console.log('🔧 Debug manual generation triggered');
-  const generated = generateTeamsForToday('debug-button');
+  const generated = await generateTeamsForToday('debug-button');
   if (!generated.ok) {
     return res.status(400).json({ error: generated.error, count: generated.count });
   }
@@ -289,17 +354,17 @@ app.post("/api/teams/generate-debug", (req, res) => {
 });
 
 // 🔧 Dev-only: reset today's state back to collecting
-app.post('/api/reset', (req, res) => {
+app.post('/api/reset', async (req, res) => {
   if (!ENABLE_MANUAL_GENERATE) {
     return res.status(403).json({ error: 'Reset is disabled in production.' });
   }
   const store = getPersistentStore();
-  store.resetForNewDay();
+  await Promise.resolve(store.resetForNewDay());
   res.json({ success: true, message: 'State reset to collecting.' });
 });
 
 app.get("/api/health", async (req, res) => {
-  ensureDailyReset();
+  await ensureDailyReset();
   const store = getPersistentStore();
   const players = await Promise.resolve(store.getPlayers());
   const phase = await Promise.resolve(store.getDailyStatus());
@@ -342,7 +407,7 @@ cron.schedule(TEAM_GENERATION_CRON, async () => {
   console.log('⏰ Cron schedule:', TEAM_GENERATION_CRON);
   console.log('⏰ Timezone:', TIMEZONE);
   console.log('Generating teams at cutoff...');
-  const generated = generateTeamsForToday('cron');
+  const generated = await generateTeamsForToday('cron');
   if (!generated.ok) {
     console.log(`❌ ${generated.error} (current: ${generated.count})`);
     return;
@@ -360,9 +425,13 @@ setInterval(() => {
   console.log(`🕐 After cutoff: ${isAfterCutoffNow()}`);
 }, 60000); // Check every minute
 
-app.listen(PORT, () => {
-  console.log(`🚀 Unified Soccer Bot running on port ${PORT}`);
-  console.log(`⚽ Team generation cron: ${TEAM_GENERATION_CRON} (${TIMEZONE})`);
-  console.log(`🧪 Manual generate enabled: ${ENABLE_MANUAL_GENERATE}`);
+// Initialise the store, then start listening
+initActiveStore().then(() => {
+  app.listen(PORT, () => {
+    console.log(`🚀 Unified Soccer Bot running on port ${PORT}`);
+    console.log(`⚽ Team generation cron: ${TEAM_GENERATION_CRON} (${TIMEZONE})`);
+    console.log(`🧪 Manual generate enabled: ${ENABLE_MANUAL_GENERATE}`);
+    console.log(`💾 Active store: ${activeStore === supabaseStore ? 'Supabase' : 'File'}`);
+  });
 });
 // Deploy trigger Thu Mar 26 01:10:11 EDT 2026
