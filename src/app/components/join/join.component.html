@@ -82,7 +82,7 @@
   <!-- Current Players Section -->
   <div class="section current-section">
     <div class="section-header">
-      <h3>Players In</h3>
+      <h3>Players In <span *ngIf="currentPlayers.length > 0" class="player-count-badge">{{ currentPlayers.length }}</span></h3>
       <div *ngIf="currentLoading" class="mini-loader"></div>
     </div>
     
