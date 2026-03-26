@@ -133,6 +133,15 @@ function generateTeamsForToday(source = 'manual') {
 
 function getUiState() {
   ensureDailyReset();
+  
+  // Check if teams should be generated automatically (cron backup)
+  if (!ENABLE_MANUAL_GENERATE && isAfterCutoffNow() && persistentStore.getDailyStatus() === 'collecting') {
+    console.log('🔄 Auto-generating teams (cron backup check)');
+    const generated = generateTeamsForToday('cron-backup');
+    if (generated.ok) {
+      console.log('✅ Teams generated via cron backup');
+    }
+  }
 
   const dailyStatus = persistentStore.getDailyStatus();
   const formedTeams = persistentStore.getFormedTeams();
