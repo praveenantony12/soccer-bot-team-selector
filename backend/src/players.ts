@@ -7,60 +7,317 @@ export interface Player {
 
 // Player database with ratings and positions
 export const playersDB: Player[] = [
-  { name: "john", rating: 8.5, position: "forward" },
-  { name: "mike", rating: 7.2, position: "midfielder" },
-  { name: "alex", rating: 9.1, position: "defender" },
-  { name: "sam", rating: 6.8, position: "forward" },
-  { name: "rob", rating: 7.5, position: "midfielder" },
-  { name: "dan", rating: 8.0, position: "goalkeeper" },
-  { name: "steve", rating: 6.5, position: "defender" },
-  { name: "mark", rating: 7.8, position: "midfielder" },
-  { name: "james", rating: 8.3, position: "forward" },
-  { name: "david", rating: 7.0, position: "defender" },
-  { name: "chris", rating: 6.2, position: "midfielder" },
-  { name: "tom", rating: 8.7, position: "forward" },
-  { name: "paul", rating: 7.3, position: "defender" },
-  { name: "andrew", rating: 6.9, position: "midfielder" },
-  { name: "jason", rating: 8.1, position: "goalkeeper" },
-  { name: "ryan", rating: 7.6, position: "forward" },
-  { name: "kevin", rating: 7.4, position: "defender" },
-  { name: "brian", rating: 8.2, position: "midfielder" },
-  { name: "george", rating: 6.7, position: "forward" },
-  { name: "edward", rating: 7.9, position: "defender" },
-  { name: "frank", rating: 8.4, position: "midfielder" },
-  { name: "henry", rating: 7.1, position: "goalkeeper" },
-  { name: "walter", rating: 6.6, position: "defender" },
-  { name: "gary", rating: 7.7, position: "midfielder" },
-  { name: "ronald", rating: 8.6, position: "forward" },
-  { name: "timothy", rating: 7.0, position: "defender" },
-  { name: "joseph", rating: 8.0, position: "midfielder" },
-  { name: "charles", rating: 6.8, position: "forward" },
-  { name: "anthony", rating: 7.5, position: "goalkeeper" },
-  { name: "matthew", rating: 8.3, position: "defender" },
-  { name: "joshua", rating: 7.2, position: "midfielder" },
-  { name: "daniel", rating: 8.1, position: "forward" },
-  { name: "patricia", rating: 6.4, position: "defender" },
-  { name: "jennifer", rating: 7.3, position: "midfielder" },
-  { name: "linda", rating: 7.8, position: "forward" },
-  { name: "elizabeth", rating: 8.5, position: "goalkeeper" },
-  { name: "barbara", rating: 6.9, position: "defender" },
-  { name: "susan", rating: 7.6, position: "midfielder" },
-  { name: "jessica", rating: 8.0, position: "forward" },
-  { name: "sarah", rating: 7.4, position: "defender" },
-  { name: "karen", rating: 6.7, position: "midfielder" },
-  { name: "nancy", rating: 7.9, position: "forward" },
-  { name: "lisa", rating: 8.2, position: "goalkeeper" },
-  { name: "betty", rating: 6.5, position: "defender" },
-  { name: "helen", rating: 7.7, position: "midfielder" },
-  { name: "sandra", rating: 8.4, position: "forward" },
-  { name: "donna", rating: 7.1, position: "defender" },
-  { name: "carol", rating: 6.8, position: "midfielder" }
+  {
+    name: 'Abhilash',
+    position: 'midfielder',
+    rating: 12,
+  },
+  {
+    name: 'Abhiroop',
+    position: 'defender',
+    rating: 11,
+  },
+  {
+    name: 'Aditya',
+    position: 'midfielder',
+    rating: 20,
+  },
+  {
+    name: 'Anish',
+    position: 'defender',
+    rating: 5,
+  },
+  {
+    name: 'Arjun',
+    position: 'defender',
+    rating: 13,
+  },
+  {
+    name: 'Ashley',
+    position: 'midfielder',
+    rating: 16,
+  },
+  {
+    name: 'Bino',
+    position: 'midfielder',
+    rating: 16,
+  },
+  {
+    name: 'Bishak',
+    position: 'midfielder',
+    rating: 15,
+  },
+  {
+    name: 'Bishu',
+    position: 'forward',
+    rating: 10,
+  },
+  {
+    name: 'Chakri',
+    position: 'midfielder',
+    rating: 9,
+  },
+  {
+    name: 'Dipu',
+    position: 'forward',
+    rating: 4,
+  },
+  {
+    name: 'Don',
+    position: 'defender',
+    rating: 9,
+  },
+  {
+    name: 'Farman',
+    position: 'midfielder',
+    rating: 18,
+  },
+  {
+    name: 'Ghani',
+    position: 'forward',
+    rating: 19,
+  },
+  {
+    name: 'Hema',
+    position: 'defender',
+    rating: 6,
+  },
+  {
+    name: 'Himmat',
+    position: 'defender',
+    rating: 4,
+  },
+  {
+    name: 'Jayakrishnan',
+    position: 'goalkeeper',
+    rating: 9,
+  },
+  {
+    name: 'Jayesh',
+    position: 'midfielder',
+    rating: 13,
+  },
+  {
+    name: 'Jikku',
+    position: 'forward',
+    rating: 19,
+  },
+  {
+    name: 'Joseph',
+    position: 'midfielder',
+    rating: 17,
+  },
+  {
+    name: 'KK',
+    position: 'midfielder',
+    rating: 9,
+  },
+  {
+    name: 'Labib',
+    position: 'midfielder',
+    rating: 12,
+  },
+  {
+    name: 'Mahesh',
+    position: 'midfielder',
+    rating: 13,
+  },
+  {
+    name: 'Manaz',
+    position: 'forward',
+    rating: 15,
+  },
+  {
+    name: 'Manish',
+    position: 'forward',
+    rating: 3,
+  },
+  {
+    name: 'Manoj B',
+    position: 'goalkeeper',
+    rating: 6,
+  },
+  {
+    name: 'Manoj M',
+    position: 'midfielder',
+    rating: 14,
+  },
+  {
+    name: 'Mathew',
+    position: 'defender',
+    rating: 6,
+  },
+  {
+    name: 'Mozart',
+    position: 'forward',
+    rating: 11,
+  },
+  {
+    name: 'Nelson',
+    position: 'forward',
+    rating: 16,
+  },
+  {
+    name: 'Niju',
+    position: 'defender',
+    rating: 4,
+  },
+  {
+    name: 'Nikhil',
+    position: 'goalkeeper',
+    rating: 6,
+  },
+  {
+    name: 'Nivin',
+    position: 'midfielder',
+    rating: 14,
+  },
+  {
+    name: 'Paul',
+    position: 'defender',
+    rating: 13,
+  },
+  {
+    name: 'Praneel',
+    position: 'defender',
+    rating: 6,
+  },
+  {
+    name: 'Prashanth',
+    position: 'defender',
+    rating: 11,
+  },
+  {
+    name: 'Prasoon',
+    position: 'defender',
+    rating: 11,
+  },
+  {
+    name: 'Praveen',
+    position: 'forward',
+    rating: 17,
+  },
+  {
+    name: 'Rejul',
+    position: 'forward',
+    rating: 11,
+  },
+  {
+    name: 'Remilin',
+    position: 'defender',
+    rating: 13,
+  },
+  {
+    name: 'Robin',
+    position: 'midfielder',
+    rating: 9,
+  },
+  {
+    name: 'Sajith',
+    position: 'goalkeeper',
+    rating: 14,
+  },
+  {
+    name: 'Saju',
+    position: 'forward',
+    rating: 5,
+  },
+  {
+    name: 'Saran',
+    position: 'midfielder',
+    rating: 11,
+  },
+  {
+    name: 'Shafeer',
+    position: 'midfielder',
+    rating: 10,
+  },
+  {
+    name: 'Shamseer',
+    position: 'defender',
+    rating: 9,
+  },
+  {
+    name: 'Sharhan',
+    position: 'goalkeeper',
+    rating: 12,
+  },
+  {
+    name: 'Shihab',
+    position: 'midfielder',
+    rating: 18,
+  },
+  {
+    name: 'Sibi',
+    position: 'defender',
+    rating: 9,
+  },
+  {
+    name: 'Sijoy',
+    position: 'defender',
+    rating: 4,
+  },
+  {
+    name: 'Sini',
+    position: 'defender',
+    rating: 4,
+  },
+  {
+    name: 'Sobin',
+    position: 'defender',
+    rating: 14,
+  },
+  {
+    name: 'Sooraj',
+    position: 'defender',
+    rating: 13,
+  },
+  {
+    name: 'Sree',
+    position: 'defender',
+    rating: 12,
+  },
+  {
+    name: 'Subbu',
+    position: 'midfielder',
+    rating: 4,
+  },
+  {
+    name: 'Varun',
+    position: 'forward',
+    rating: 15,
+  },
+  {
+    name: 'Vineeth',
+    position: 'defender',
+    rating: 11,
+  },
+  {
+    name: 'Vipin',
+    position: 'defender',
+    rating: 8,
+  },
+  {
+    name: 'Visakhan',
+    position: 'forward',
+    rating: 12,
+  },
+  {
+    name: 'Vivek',
+    position: 'defender',
+    rating: 9,
+  },
+  {
+    name: 'Zubair',
+    position: 'midfielder',
+    rating: 15,
+  },
 ];
 
 export function getPlayerByName(name: string): Player | undefined {
-  return playersDB.find(p => p.name.toLowerCase() === name.toLowerCase());
+  return playersDB.find((p) => p.name.toLowerCase() === name.toLowerCase());
 }
 
 export function getAllPlayerNames(): string[] {
-  return playersDB.map(p => p.name);
+  return playersDB.map((p) => p.name);
 }
