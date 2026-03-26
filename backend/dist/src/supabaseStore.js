@@ -69,7 +69,36 @@ class SupabasePersistentStore {
             }
             if (data) {
                 console.log('📁 Loaded persistent data from Supabase');
-                return data;
+                // Convert Supabase snake_case to camelCase for consistency
+                // Handle JSON strings for array fields
+                let currentPlayers = data.current_players || [];
+                if (typeof currentPlayers === 'string') {
+                    try {
+                        currentPlayers = JSON.parse(currentPlayers);
+                    }
+                    catch (e) {
+                        currentPlayers = [];
+                    }
+                }
+                let formedTeams = data.formed_teams || null;
+                if (typeof formedTeams === 'string') {
+                    try {
+                        formedTeams = JSON.parse(formedTeams);
+                    }
+                    catch (e) {
+                        formedTeams = null;
+                    }
+                }
+                return {
+                    date: data.date,
+                    current_players: Array.isArray(currentPlayers) ? currentPlayers : [],
+                    last_reset: data.last_reset || '',
+                    formed_teams: formedTeams,
+                    daily_status: data.daily_status || 'collecting',
+                    last_processed_date: data.last_processed_date || '',
+                    created_at: data.created_at || new Date().toISOString(),
+                    updated_at: data.updated_at || new Date().toISOString()
+                };
             }
             else {
                 console.log('📁 No data found for today, creating new entry');
@@ -102,7 +131,17 @@ class SupabasePersistentStore {
             if (error)
                 throw error;
             console.log('🆕 Created new daily data entry');
-            return data;
+            // Convert Supabase snake_case to camelCase for consistency
+            return {
+                date: data.date,
+                current_players: Array.isArray(data.current_players) ? data.current_players : [],
+                last_reset: data.last_reset || '',
+                formed_teams: data.formed_teams || null,
+                daily_status: data.daily_status || 'collecting',
+                last_processed_date: data.last_processed_date || '',
+                created_at: data.created_at || new Date().toISOString(),
+                updated_at: data.updated_at || new Date().toISOString()
+            };
         }
         catch (error) {
             console.error('❌ Error creating new daily data:', error);
@@ -141,7 +180,24 @@ class SupabasePersistentStore {
     }
     async getPlayers() {
         const data = await this.loadData();
-        return data?.current_players || [];
+        let players = data?.current_players || [];
+        // Handle case where Supabase returns JSON string instead of array
+        if (typeof players === 'string') {
+            try {
+                players = JSON.parse(players);
+            }
+            catch (e) {
+                console.log('⚠️ Failed to parse current_players as JSON, using empty array');
+                players = [];
+            }
+        }
+        // Ensure it's an array
+        if (!Array.isArray(players)) {
+            console.log('⚠️ current_players is not an array, converting');
+            players = [];
+        }
+        console.log('🔍 Debug - current_players from Supabase:', players, 'type:', typeof players, 'isArray:', Array.isArray(players));
+        return players;
     }
     async addPlayer(name) {
         const data = await this.loadData();
