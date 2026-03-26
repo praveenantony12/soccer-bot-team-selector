@@ -21,6 +21,7 @@ class PersistentStore {
     }
     loadData() {
         try {
+            // Try file storage first
             if ((0, fs_1.existsSync)(DATA_FILE)) {
                 const data = (0, fs_1.readFileSync)(DATA_FILE, 'utf8');
                 const parsed = JSON.parse(data);
@@ -29,27 +30,43 @@ class PersistentStore {
                 this.formedTeams = parsed.formedTeams || null;
                 this.dailyStatus = parsed.dailyStatus || 'collecting';
                 this.lastProcessedDate = parsed.lastProcessedDate || '';
-                // Check if it's a new day (reset at midnight)
-                const today = this.getTodayKey();
-                if (this.lastReset !== today) {
-                    console.log('🔄 New day detected, resetting players and teams');
-                    this.currentPlayers = [];
-                    this.formedTeams = null;
-                    this.dailyStatus = 'collecting';
-                    this.lastProcessedDate = '';
-                    this.lastReset = today;
-                    this.saveData();
-                }
-                console.log('📁 Loaded persistent data:', {
-                    currentPlayers: this.currentPlayers.length,
-                    lastReset: this.lastReset
-                });
+                console.log('📁 Loaded persistent data from file');
+            }
+            else {
+                console.log('📁 No data file found, using env backup');
             }
         }
         catch (error) {
-            console.error('❌ Error loading persistent data:', error);
+            console.error('📁 Error loading data file, trying env backup:', error);
+        }
+        // Backup: Load from environment variables (for Render's ephemeral storage)
+        try {
+            const envPlayers = process.env.PERSISTENT_PLAYERS;
+            const envLastReset = process.env.PERSISTENT_LAST_RESET;
+            const envStatus = process.env.PERSISTENT_STATUS;
+            const envTeams = process.env.PERSISTENT_TEAMS;
+            if (envPlayers && this.currentPlayers.length === 0) {
+                this.currentPlayers = JSON.parse(envPlayers);
+                this.lastReset = envLastReset || this.getTodayKey();
+                this.dailyStatus = envStatus || 'collecting';
+                this.formedTeams = envTeams ? JSON.parse(envTeams) : null;
+                this.lastProcessedDate = process.env.PERSISTENT_PROCESSED_DATE || '';
+                console.log('🔄 Loaded persistent data from environment variables');
+            }
+        }
+        catch (error) {
+            console.error('� Error loading env backup:', error);
+        }
+        // Check if it's a new day (reset at midnight)
+        const today = this.getTodayKey();
+        if (this.lastReset !== today) {
+            console.log('🔄 New day detected, resetting players and teams');
             this.currentPlayers = [];
-            this.lastReset = new Date().toDateString();
+            this.formedTeams = null;
+            this.dailyStatus = 'collecting';
+            this.lastProcessedDate = '';
+            this.lastReset = today;
+            this.saveData();
         }
     }
     saveData() {
@@ -61,8 +78,22 @@ class PersistentStore {
                 dailyStatus: this.dailyStatus,
                 lastProcessedDate: this.lastProcessedDate
             };
+            // Save to file (for local development)
             (0, fs_1.writeFileSync)(DATA_FILE, JSON.stringify(data, null, 2));
-            console.log('💾 Saved persistent data');
+            console.log('💾 Saved persistent data to file');
+            // Backup: Save to environment variables (for Render's ephemeral storage)
+            // Note: This only works if the environment allows setting env vars at runtime
+            try {
+                process.env.PERSISTENT_PLAYERS = JSON.stringify(this.currentPlayers);
+                process.env.PERSISTENT_LAST_RESET = this.lastReset;
+                process.env.PERSISTENT_STATUS = this.dailyStatus;
+                process.env.PERSISTENT_TEAMS = JSON.stringify(this.formedTeams);
+                process.env.PERSISTENT_PROCESSED_DATE = this.lastProcessedDate;
+                console.log('💾 Saved persistent data to environment variables');
+            }
+            catch (envError) {
+                console.log('⚠️ Could not save to environment variables (expected on some platforms)');
+            }
         }
         catch (error) {
             console.error('❌ Error saving persistent data:', error);
