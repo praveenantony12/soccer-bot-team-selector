@@ -363,3 +363,4 @@ app.listen(PORT, () => {
   console.log(`⚽ Team generation cron: ${TEAM_GENERATION_CRON} (${TIMEZONE})`);
   console.log(`🧪 Manual generate enabled: ${ENABLE_MANUAL_GENERATE}`);
 });
+// Deploy trigger Thu Mar 26 01:10:11 EDT 2026
