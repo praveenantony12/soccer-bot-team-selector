@@ -104,11 +104,22 @@ The file `backend/unified-render.yaml` contains the full Render service configur
 | `PORT` | `10000` |
 | `TZ` | `America/New_York` |
 | `TEAM_TIMEZONE` | `America/New_York` |
-| `TEAM_GENERATION_CRON` | `57 23 * * *` | 11:57 PM EDT
+| `TEAM_GENERATION_CRON` | `59 3 * * *` | 11:59 PM EDT (3:59 AM UTC next day)
 | `MIN_PLAYERS_TO_FORM_TEAMS` | `12` |
 | `ENABLE_MANUAL_GENERATE` | `true` | Temporarily enable to fix cron issue
 
-The `ENABLE_MANUAL_GENERATE=false` hides dev Generate button in production. Teams are formed only by the 11:57 PM cron.
+The `ENABLE_MANUAL_GENERATE=false` hides dev Generate button in production. Teams are formed only by the 11:59 PM cron.
+
+### Time Conversion Reference (Daylight Saving Time)
+Since EDT = UTC-4, add 4 hours to your target time to get UTC cron hour:
+
+| Target Time (EDT) | UTC Equivalent | Cron Format |
+|---|---|---|
+| 8:00 PM EDT | 12:00 AM UTC | `0 0 * * *` |
+| 9:00 PM EDT | 1:00 AM UTC | `0 1 * * *` |
+| 10:00 PM EDT | 2:00 AM UTC | `0 2 * * *` |
+| 11:00 PM EDT | 3:00 AM UTC | `0 3 * * *` |
+| 11:59 PM EDT | 3:59 AM UTC | `59 3 * * *` |
 
 ### Deployed URL
 

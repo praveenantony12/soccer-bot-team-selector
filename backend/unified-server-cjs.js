@@ -252,7 +252,24 @@ app.post("/api/teams/generate", (req, res) => {
     return res.status(400).json({ error: generated.error, count: generated.count });
   }
 
-  res.json(generated.result);
+  res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  res.json({ success: true, teams: generated.result });
+});
+
+// 🔧 Debug endpoint - always allows manual generation (bypasses ENABLE_MANUAL_GENERATION)
+app.post("/api/teams/generate-debug", (req, res) => {
+  console.log('🔧 Debug manual generation triggered');
+  const generated = generateTeamsForToday('debug-button');
+  if (!generated.ok) {
+    return res.status(400).json({ error: generated.error, count: generated.count });
+  }
+
+  res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  res.json({ success: true, teams: generated.result });
 });
 
 // 🔧 Dev-only: reset today's state back to collecting
