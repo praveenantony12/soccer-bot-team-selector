@@ -25,6 +25,25 @@ export class JoinComponent implements OnInit {
 
   constructor(private http: HttpClient, private cdr: ChangeDetectorRef) { }
 
+  private normalizePlayers(input: unknown): string[] {
+    if (Array.isArray(input)) {
+      return input.filter((player): player is string => typeof player === 'string');
+    }
+
+    if (typeof input === 'string') {
+      try {
+        const parsed = JSON.parse(input);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((player): player is string => typeof player === 'string');
+        }
+      } catch {
+        return [];
+      }
+    }
+
+    return [];
+  }
+
   ngOnInit() {
     this.loadPlayers();
     this.loadCurrent();
@@ -48,9 +67,9 @@ export class JoinComponent implements OnInit {
   loadCurrent() {
     if (this.currentLoading) return;
     this.currentLoading = true;
-    this.http.get<string[]>(`${this.BASE_URL}/api/current`).subscribe({
+    this.http.get<unknown>(`${this.BASE_URL}/api/current`).subscribe({
       next: (res) => {
-        this.currentPlayers = res || [];
+        this.currentPlayers = this.normalizePlayers(res);
         this.currentLoading = false;
         this.updateAvailablePlayers();
         this.cdr.detectChanges();

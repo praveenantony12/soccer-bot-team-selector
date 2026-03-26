@@ -191,10 +191,10 @@ function getUiState() {
   };
 }
 
-app.get("/api/current", (req, res) => {
+app.get("/api/current", async (req, res) => {
   ensureDailyReset();
   const store = getPersistentStore();
-  const currentPlayers = store.getPlayers();
+  const currentPlayers = await Promise.resolve(store.getPlayers());
 
   res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.set('Pragma', 'no-cache');
@@ -202,7 +202,7 @@ app.get("/api/current", (req, res) => {
   res.json(currentPlayers);
 });
 
-app.post("/api/join", (req, res) => {
+app.post("/api/join", async (req, res) => {
   ensureDailyReset();
   const store = getPersistentStore();
   const { name } = req.body;
@@ -219,18 +219,18 @@ app.post("/api/join", (req, res) => {
     return res.status(400).json({ error: 'Player name is required.' });
   }
 
-  store.addPlayer(name);
+  await Promise.resolve(store.addPlayer(name));
   res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
   res.json({ success: true });
 });
 
-app.post("/api/leave", (req, res) => {
+app.post("/api/leave", async (req, res) => {
   ensureDailyReset();
   const store = getPersistentStore();
   const { name } = req.body;
-  store.removePlayer(name);
+  await Promise.resolve(store.removePlayer(name));
   res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
@@ -298,14 +298,16 @@ app.post('/api/reset', (req, res) => {
   res.json({ success: true, message: 'State reset to collecting.' });
 });
 
-app.get("/api/health", (req, res) => {
+app.get("/api/health", async (req, res) => {
   ensureDailyReset();
   const store = getPersistentStore();
+  const players = await Promise.resolve(store.getPlayers());
+  const phase = await Promise.resolve(store.getDailyStatus());
   res.json({ 
     status: "ok", 
     timestamp: new Date().toISOString(),
-    players: store.getPlayers().length,
-    phase: store.getDailyStatus()
+    players: Array.isArray(players) ? players.length : 0,
+    phase
   });
 });
 
