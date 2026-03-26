@@ -6,7 +6,7 @@ services:
     plan: free
     env: node
     rootDir: backend
-    buildCommand: "cd .. && npm install && npm run build:prod && cd backend && npm install && npm run build"
+    buildCommand: "cd .. && npm install --include=dev && npm run build:prod && cd backend && npm install --include=dev && npm run build"
     startCommand: "npm start"
     healthCheckPath: /api/health
     envVars:
@@ -18,6 +18,8 @@ services:
         value: America/New_York
       - key: TEAM_TIMEZONE
         value: America/New_York
+      - key: TEAM_GENERATION_CRON
+        value: 30 19 * * *
       - key: MIN_PLAYERS_TO_FORM_TEAMS
         value: 12
       - key: ENABLE_MANUAL_GENERATE

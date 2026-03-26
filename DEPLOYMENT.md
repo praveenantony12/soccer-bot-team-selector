@@ -92,7 +92,7 @@ The file `backend/unified-render.yaml` contains the full Render service configur
 |---|---|
 | Runtime | Node |
 | Root Directory | `backend` |
-| Build Command | `cd .. && npm install && npm run build:prod && cd backend && npm install && npm run build` |
+| Build Command | `cd .. && npm install --include=dev && npm run build:prod && cd backend && npm install --include=dev && npm run build` |
 | Start Command | `npm start` |
 | Health Check Path | `/api/health` |
 
@@ -104,6 +104,7 @@ The file `backend/unified-render.yaml` contains the full Render service configur
 | `PORT` | `10000` |
 | `TZ` | `America/New_York` |
 | `TEAM_TIMEZONE` | `America/New_York` |
+| `TEAM_GENERATION_CRON` | `30 19 * * *` |
 | `MIN_PLAYERS_TO_FORM_TEAMS` | `12` |
 | `ENABLE_MANUAL_GENERATE` | `false` |
 
