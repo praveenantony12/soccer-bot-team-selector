@@ -47,3 +47,9 @@ Thumbs.db
 # Environment files
 backend/.env
 .env
+
+# Runtime/state files
+backend/players.json
+
+# Accidental generated backend artifacts
+backend/dist/src/emailService.js

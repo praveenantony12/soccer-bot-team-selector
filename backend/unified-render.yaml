@@ -6,7 +6,7 @@ services:
     plan: free
     env: node
     rootDir: backend
-    buildCommand: "npm install && npm run build"
+    buildCommand: "cd .. && npm install && npm run build:prod && cd backend && npm install && npm run build"
     startCommand: "npm start"
     healthCheckPath: /api/health
     envVars:
@@ -14,17 +14,11 @@ services:
         value: production
       - key: PORT
         value: 10000
-      - key: WHATSAPP_GROUP_JID
-        sync: false
-      - key: TWILIO_ACCOUNT_SID
-        sync: false
-      - key: TWILIO_AUTH_TOKEN
-        sync: false
-      - key: TWILIO_NUMBER
-        sync: false
-      - key: BASE_URL
-        value: https://soccer-bot-team-selector.onrender.com
       - key: TZ
         value: America/New_York
-      - key: LOG_LEVEL
-        value: info
+      - key: TEAM_TIMEZONE
+        value: America/New_York
+      - key: MIN_PLAYERS_TO_FORM_TEAMS
+        value: 12
+      - key: ENABLE_MANUAL_GENERATE
+        value: false

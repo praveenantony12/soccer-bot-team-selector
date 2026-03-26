@@ -17,6 +17,9 @@ var PersistentStore = /** @class */ (function () {
     function PersistentStore() {
         this.currentPlayers = [];
         this.lastReset = '';
+        this.formedTeams = null;
+        this.dailyStatus = 'collecting';
+        this.lastProcessedDate = '';
         this.loadData();
     }
     PersistentStore.getInstance = function () {
@@ -32,11 +35,17 @@ var PersistentStore = /** @class */ (function () {
                 var parsed = JSON.parse(data);
                 this.currentPlayers = parsed.currentPlayers || [];
                 this.lastReset = parsed.lastReset || '';
+                this.formedTeams = parsed.formedTeams || null;
+                this.dailyStatus = parsed.dailyStatus || 'collecting';
+                this.lastProcessedDate = parsed.lastProcessedDate || '';
                 // Check if it's a new day (reset at midnight)
-                var today = new Date().toDateString();
+                var today = this.getTodayKey();
                 if (this.lastReset !== today) {
-                    console.log('🔄 New day detected, resetting players');
-                    this.clearPlayers();
+                    console.log('🔄 New day detected, resetting players and teams');
+                    this.currentPlayers = [];
+                    this.formedTeams = null;
+                    this.dailyStatus = 'collecting';
+                    this.lastProcessedDate = '';
                     this.lastReset = today;
                     this.saveData();
                 }
@@ -56,7 +65,10 @@ var PersistentStore = /** @class */ (function () {
         try {
             var data = {
                 currentPlayers: this.currentPlayers,
-                lastReset: this.lastReset
+                lastReset: this.lastReset,
+                formedTeams: this.formedTeams,
+                dailyStatus: this.dailyStatus,
+                lastProcessedDate: this.lastProcessedDate
             };
             (0, fs_1.writeFileSync)(DATA_FILE, JSON.stringify(data, null, 2));
             console.log('💾 Saved persistent data');
@@ -82,12 +94,59 @@ var PersistentStore = /** @class */ (function () {
     };
     PersistentStore.prototype.clearPlayers = function () {
         this.currentPlayers = [];
-        this.lastReset = new Date().toDateString();
+        this.lastReset = this.getTodayKey();
         this.saveData();
-        console.log('🗑️ Players cleared for new day');
+        console.log('🗑️ Players cleared');
+    };
+    PersistentStore.prototype.saveTeams = function (teams) {
+        this.formedTeams = teams;
+        this.dailyStatus = 'formed';
+        this.lastProcessedDate = this.getTodayKey();
+        this.saveData();
+        console.log('🏆 Teams saved to persistent store');
+    };
+    PersistentStore.prototype.getFormedTeams = function () {
+        return this.formedTeams;
     };
     PersistentStore.prototype.getPlayerCount = function () {
         return this.currentPlayers.length;
+    };
+    PersistentStore.prototype.markInsufficient = function () {
+        this.dailyStatus = 'insufficient';
+        this.lastProcessedDate = this.getTodayKey();
+        this.saveData();
+    };
+    PersistentStore.prototype.setDailyStatus = function (status) {
+        this.dailyStatus = status;
+        this.saveData();
+    };
+    PersistentStore.prototype.getDailyStatus = function () {
+        return this.dailyStatus;
+    };
+    PersistentStore.prototype.getLastProcessedDate = function () {
+        return this.lastProcessedDate;
+    };
+    PersistentStore.prototype.hasProcessedToday = function () {
+        return this.lastProcessedDate === this.getTodayKey();
+    };
+    PersistentStore.prototype.getLastResetKey = function () {
+        return this.lastReset;
+    };
+    PersistentStore.prototype.resetForNewDay = function () {
+        this.currentPlayers = [];
+        this.formedTeams = null;
+        this.dailyStatus = 'collecting';
+        this.lastProcessedDate = '';
+        this.lastReset = this.getTodayKey();
+        this.saveData();
+    };
+    PersistentStore.prototype.getTodayKey = function () {
+        return new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'America/New_York',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).format(new Date());
     };
     return PersistentStore;
 }());

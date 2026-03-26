@@ -6,12 +6,18 @@ const DATA_FILE = join(process.cwd(), 'players.json');
 interface PlayerData {
   currentPlayers: string[];
   lastReset: string;
+  formedTeams?: any;
+  dailyStatus?: 'collecting' | 'formed' | 'insufficient';
+  lastProcessedDate?: string;
 }
 
 export class PersistentStore {
   private static instance: PersistentStore;
   private currentPlayers: string[] = [];
   private lastReset: string = '';
+  private formedTeams: any = null;
+  private dailyStatus: 'collecting' | 'formed' | 'insufficient' = 'collecting';
+  private lastProcessedDate: string = '';
 
   private constructor() {
     this.loadData();
@@ -31,12 +37,18 @@ export class PersistentStore {
         const parsed: PlayerData = JSON.parse(data);
         this.currentPlayers = parsed.currentPlayers || [];
         this.lastReset = parsed.lastReset || '';
+        this.formedTeams = parsed.formedTeams || null;
+        this.dailyStatus = parsed.dailyStatus || 'collecting';
+        this.lastProcessedDate = parsed.lastProcessedDate || '';
         
         // Check if it's a new day (reset at midnight)
-        const today = new Date().toDateString();
+        const today = this.getTodayKey();
         if (this.lastReset !== today) {
-          console.log('🔄 New day detected, resetting players');
-          this.clearPlayers();
+          console.log('🔄 New day detected, resetting players and teams');
+          this.currentPlayers = [];
+          this.formedTeams = null;
+          this.dailyStatus = 'collecting';
+          this.lastProcessedDate = '';
           this.lastReset = today;
           this.saveData();
         }
@@ -57,7 +69,10 @@ export class PersistentStore {
     try {
       const data: PlayerData = {
         currentPlayers: this.currentPlayers,
-        lastReset: this.lastReset
+        lastReset: this.lastReset,
+        formedTeams: this.formedTeams,
+        dailyStatus: this.dailyStatus,
+        lastProcessedDate: this.lastProcessedDate
       };
       writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
       console.log('💾 Saved persistent data');
@@ -86,13 +101,71 @@ export class PersistentStore {
 
   clearPlayers(): void {
     this.currentPlayers = [];
-    this.lastReset = new Date().toDateString();
+    this.lastReset = this.getTodayKey();
     this.saveData();
-    console.log('🗑️ Players cleared for new day');
+    console.log('🗑️ Players cleared');
+  }
+
+  saveTeams(teams: any): void {
+    this.formedTeams = teams;
+    this.dailyStatus = 'formed';
+    this.lastProcessedDate = this.getTodayKey();
+    this.saveData();
+    console.log('🏆 Teams saved to persistent store');
+  }
+
+  getFormedTeams(): any {
+    return this.formedTeams;
   }
 
   getPlayerCount(): number {
     return this.currentPlayers.length;
+  }
+
+  markInsufficient(): void {
+    this.dailyStatus = 'insufficient';
+    this.formedTeams = null;
+    this.lastProcessedDate = this.getTodayKey();
+    this.saveData();
+  }
+
+  setDailyStatus(status: 'collecting' | 'formed' | 'insufficient'): void {
+    this.dailyStatus = status;
+    this.saveData();
+  }
+
+  getDailyStatus(): 'collecting' | 'formed' | 'insufficient' {
+    return this.dailyStatus;
+  }
+
+  getLastProcessedDate(): string {
+    return this.lastProcessedDate;
+  }
+
+  hasProcessedToday(): boolean {
+    return this.lastProcessedDate === this.getTodayKey();
+  }
+
+  getLastResetKey(): string {
+    return this.lastReset;
+  }
+
+  resetForNewDay(): void {
+    this.currentPlayers = [];
+    this.formedTeams = null;
+    this.dailyStatus = 'collecting';
+    this.lastProcessedDate = '';
+    this.lastReset = this.getTodayKey();
+    this.saveData();
+  }
+
+  getTodayKey(): string {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/New_York',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(new Date());
   }
 }
 

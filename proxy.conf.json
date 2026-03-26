@@ -1,23 +1,5 @@
 {
-  "/api/*": {
-    "target": "http://localhost:3000",
-    "secure": false,
-    "changeOrigin": true,
-    "logLevel": "debug"
-  },
-  "/players": {
-    "target": "http://localhost:3000",
-    "secure": false,
-    "changeOrigin": true,
-    "logLevel": "debug"
-  },
-  "/current": {
-    "target": "http://localhost:3000",
-    "secure": false,
-    "changeOrigin": true,
-    "logLevel": "debug"
-  },
-  "/join": {
+  "/api/**": {
     "target": "http://localhost:3000",
     "secure": false,
     "changeOrigin": true,

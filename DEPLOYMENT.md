@@ -1,235 +1,137 @@
-# 🚀 Deployment Guide for Render
+# Soccer Bot Team Selector — Deployment Guide
 
-## 📋 Prerequisites
+## How It Works
 
-- Render account (Free tier available)
-- Twilio account with WhatsApp enabled
-- WhatsApp Group JID
-- Git repository with your code
+- Players open the app and join before **7:30 PM EDT**.
+- At **7:30 PM EDT** the cron job runs automatically, balances the players into Blue and Red teams, and saves the result.
+- The app switches from the join screen to show the two formed teams.
+- The next day the state resets automatically and players can join again.
 
-## 🎯 Repository Name Deployment
-
-**Single service serving both frontend and backend together**
-**URL: https://soccer-bot-team-selector.onrender.com**
+In local/dev environments a **"Generate Teams (Dev)"** button is shown so you can test team formation at any time.
 
 ---
 
-## 🔧 Step 1: Update Environment Variables
+## Running Locally
+
+You need two terminals: one for the backend, one for the Angular frontend.
+
+### Terminal 1 — Backend
 
 ```bash
-WHATSAPP_GROUP_JID=your-group-jid@g.us
-TWILIO_ACCOUNT_SID=TWILIO_ACCOUNT_SID
-TWILIO_AUTH_TOKEN=TWILIO_AUTH_TOKEN
-TWILIO_NUMBER=TWILIO_NUMBER
-BASE_URL=https://soccer-bot-team-selector.onrender.com
+cd backend
+npm install
+node unified-server-cjs.js
+```
+
+The backend runs on **http://localhost:3000**.
+
+### Terminal 2 — Angular Frontend
+
+```bash
+# from repo root
+npm install
+npm start
+```
+
+The frontend runs on **http://localhost:4200** and proxies all `/api/**` calls to `localhost:3000`.
+
+### Or run both with one command
+
+```bash
+# from repo root
+npm run dev
+```
+
+This uses `concurrently` to start both servers together.
+
+---
+
+## Environment Variables (local overrides)
+
+Create a `.env` file in `backend/` if you want to override defaults (optional — defaults work out of the box):
+
+```bash
 PORT=3000
-NODE_ENV=production
-TZ=America/New_York
-LOG_LEVEL=info
-```
-
-## 🚀 Step 2: Deploy Repository Service
-
-### 1. Build and Deploy
-```bash
-# Build TypeScript source files
-npm run build
-
-# Deploy to Render
-git add backend/unified-render.yaml
-git commit -m "Deploy soccer bot with repository URL"
-git push
-```
-
-### 2. Render Configuration
-The `unified-render.yaml` contains:
-- **Service Name**: soccer-bot-team-selector
-- **Build Command**: `npm install && npm run build`
-- **Start Command**: `npm start`
-- **Root Directory**: `backend`
-- **All environment variables** configured
-
-### 3. How Service Works
-- **Single Node.js server** serves both API and static files
-- **Frontend** served from `/dist/soccer-bot-team-selector`
-- **Backend API** served from `/api/*` endpoints
-- **Repository URL**: `https://soccer-bot-team-selector.onrender.com`
-- **Shared persistence** across both frontend and backend
-
----
-
-## 🎯 Step 3: Configure Frontend
-
-Frontend is already configured to use:
-```typescript
-private readonly BASE_URL = 'https://soccer-bot-team-selector.onrender.com';
+NODE_ENV=development
+TEAM_TIMEZONE=America/New_York
+TEAM_GENERATION_CRON=30 19 * * *   # 7:30 PM — standard cron syntax
+MIN_PLAYERS_TO_FORM_TEAMS=12
+ENABLE_MANUAL_GENERATE=true         # shows the dev Generate button
 ```
 
 ---
 
-## 🧪 Step 4: Testing
+## Building for Production
 
-### 1. Test Flow
 ```bash
-# 1. Visit your app
+# from repo root — builds Angular into backend/dist/soccer-bot-team-selector/browser
+npm run build:prod
+
+# compile backend TypeScript helpers
+cd backend && npm run build
+```
+
+The Express server in `backend/unified-server-cjs.js` serves the compiled Angular output as static files and handles all `/api/**` routes.
+
+---
+
+## Deploying to Render
+
+The file `backend/unified-render.yaml` contains the full Render service configuration.
+
+### Steps
+
+1. Push your code to GitHub.
+2. In the [Render dashboard](https://dashboard.render.com) create a new **Web Service** and connect your GitHub repository.
+3. Set **Root Directory** to `backend`.
+4. Render will pick up `unified-render.yaml` automatically (or set the fields manually — see below).
+
+### Render Service Settings
+
+| Setting | Value |
+|---|---|
+| Runtime | Node |
+| Root Directory | `backend` |
+| Build Command | `cd .. && npm install && npm run build:prod && cd backend && npm install && npm run build` |
+| Start Command | `npm start` |
+| Health Check Path | `/api/health` |
+
+### Environment Variables on Render
+
+| Key | Value |
+|---|---|
+| `NODE_ENV` | `production` |
+| `PORT` | `10000` |
+| `TZ` | `America/New_York` |
+| `TEAM_TIMEZONE` | `America/New_York` |
+| `MIN_PLAYERS_TO_FORM_TEAMS` | `12` |
+| `ENABLE_MANUAL_GENERATE` | `false` |
+
+The `ENABLE_MANUAL_GENERATE=false` hides the dev Generate button in production. Teams are formed only by the 7:30 PM cron.
+
+### Deployed URL
+
+```
 https://soccer-bot-team-selector.onrender.com
-
-# 2. Add players via UI
-# 3. Wait 1-2 minutes for team generation
-# 4. Check WhatsApp group for automated messages
-# 5. Verify persistence across cold starts
 ```
 
-### 2. Monitor Service
-```bash
-# Check health endpoint
-curl https://soccer-bot-team-selector.onrender.com/api/health
+### Key API Endpoints
 
-# Expected response
-{
-  "status": "ok",
-  "timestamp": "2026-03-25T13:30:00.000Z",
-  "players": 5
-}
-```
-
-### 3. Test API Endpoints
-```bash
-# Get current players
-curl https://soccer-bot-team-selector.onrender.com/api/current
-
-# Test join
-curl -X POST https://soccer-bot-team-selector.onrender.com/api/join \
-  -H "Content-Type: application/json" \
-  -d '{"name": "john"}'
-
-# Test leave
-curl -X POST https://soccer-bot-team-selector.onrender.com/api/leave \
-  -H "Content-Type: application/json" \
-  -d '{"name": "john"}'
-```
+| Endpoint | Description |
+|---|---|
+| `GET /api/health` | Server health + current phase |
+| `GET /api/ui-state` | Phase, teams, and whether the Generate button is enabled |
+| `GET /api/players` | Full player list |
+| `GET /api/current` | Players who have joined today |
+| `POST /api/join` | `{ "name": "..." }` — add a player |
+| `POST /api/leave` | `{ "name": "..." }` — remove a player |
+| `POST /api/teams/generate` | Manually trigger team generation (dev only) |
 
 ---
 
-## 🔄 Cold Start & Persistence
+## Notes
 
-### ✅ Repository URL Benefits
+- Player and team state is persisted in `backend/players.json`. This file is created automatically.
+- Render's free tier spins down after inactivity. The first request after a cold start may be slow.
+- To manually reset the day's state during testing, delete the contents of `backend/players.json` (or set `dailyStatus` back to `"collecting"`) and restart the server.
 
-- **Single persistence layer** - no data loss on cold starts
-- **One deployment** - simpler management and debugging
-- **Shared storage** - frontend and backend use same data
-- **Automatic reset** - daily at midnight for fresh games
-- **Cold start proof** - loads from file on restart
-- **Repository-based URL** - matches your GitHub repo name
-
-### Persistence Flow
-```typescript
-// Service handles persistence automatically
-1. Any player action → Save to players.json
-2. Cold start → Load from players.json
-3. New day → Auto-reset at midnight
-4. Teams formed → Clear data for next game
-```
-
----
-
-## 🚨 Testing Schedule
-
-Currently configured for testing:
-- **Reminders**: Every minute (`* * * * *`)
-- **Team Generation**: Every 2 minutes (`*/2 * * * *`)
-
-### 🏆 Production Schedule
-When ready for production, update cron schedules in `unified-server-cjs.js`:
-```javascript
-// Production schedules
-cron.schedule("0 9 * * 2,4,0", async () => { ... }); // Tue/Thu/Sun 9 AM
-cron.schedule("0 19 * * 2,4,0", async () => { ... }); // Tue/Thu/Sun 7 PM
-```
-
----
-
-## 🚨 Common Issues & Solutions
-
-### Issue: Frontend Not Loading
-**Solution**: Check static file path in `unified-server-cjs.js`
-
-### Issue: API Not Accessible  
-**Solution**: Verify `/api/*` routes are working
-
-### Issue: WhatsApp Not Working
-**Solution**: Verify Twilio credentials and group JID format
-
-### Issue: Persistence Failing
-**Solution**: Check file permissions in Render environment
-
----
-
-## 📈 Scaling Recommendations
-
-### For Production Use:
-1. **Upgrade to Render Starter** ($7/month)
-2. **Keep unified service** (simpler and cheaper)
-3. **Add monitoring** with Render's built-in metrics
-4. **Custom domain** (optional, repository URL works well)
-
-### Storage Options:
-- **Current**: File-based persistence (works on free tier)
-- **Upgrade**: Render PostgreSQL add-on for better reliability
-- **Alternative**: Redis add-on for improved performance
-
----
-
-## 🎯 Quick Test Checklist
-
-- [ ] Service deployed and healthy
-- [ ] Frontend accessible at https://soccer-bot-team-selector.onrender.com
-- [ ] API endpoints working (`/api/*`)
-- [ ] WhatsApp messages sending correctly
-- [ ] Players persisting after cold starts
-- [ ] Team generation working with 12+ players
-- [ ] Daily reset happening automatically
-- [ ] Logs showing persistence events
-
----
-
-## 🏆 Deployment Complete
-
-**Your soccer bot is ready with repository URL!** 
-
-**Benefits:**
-- ✅ **Repository URL** - https://soccer-bot-team-selector.onrender.com
-- ✅ **Single deployment** - one URL to manage
-- ✅ **Shared persistence** - no data sync issues
-- ✅ **Cold start proof** - survives restarts
-- ✅ **Production ready** - easy to scale
-- ✅ **Consistent naming** - matches GitHub repository
-
----
-
-## 🚀 Quick Start Commands
-
-```bash
-# Deploy service with repository URL
-npm run build
-git add backend/unified-render.yaml
-git commit -m "Deploy soccer bot with repository URL"
-git push
-
-# Monitor deployment
-curl https://soccer-bot-team-selector.onrender.com/api/health
-```
-
-**Deploy with repository URL for the best experience!** 🎉
-
-## 🆘 Support
-
-If you encounter issues:
-1. Check Render logs first
-2. Verify environment variables
-3. Test API endpoints manually
-4. Monitor WhatsApp message delivery
-5. Check persistence file creation
-
----
-**Happy testing!** 🎉 Your soccer bot should now work reliably on Render with automatic persistence across cold starts!

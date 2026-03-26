@@ -14,23 +14,45 @@ export interface BalanceResult {
   quality: 'excellent' | 'good' | 'poor';
 }
 
-export function balanceTeams(players: Player[]): BalanceResult {
-  if (players.length < 2) {
-    throw new Error('Need at least 2 players to form teams');
-  }
+type Candidate = {
+  team1: Player[];
+  team2: Player[];
+  team1Rating: number;
+  team2Rating: number;
+  balance: number;
+};
 
-  // Sort players by rating (highest first)
-  const sortedPlayers = [...players].sort((a, b) => b.rating - a.rating);
-  
-  // Initialize teams
+function shufflePlayers(players: Player[]): Player[] {
+  const list = [...players];
+  for (let index = list.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [list[index], list[swapIndex]] = [list[swapIndex], list[index]];
+  }
+  return list;
+}
+
+function getBalance(team1Rating: number, team2Rating: number, team1Size: number, team2Size: number): number {
+  const team1Avg = team1Rating / team1Size;
+  const team2Avg = team2Rating / team2Size;
+  return Math.abs(team1Avg - team2Avg);
+}
+
+function buildCandidate(players: Player[]): Candidate {
+  const sortedPlayers = shufflePlayers(players).sort((first, second) => {
+    const firstScore = first.rating + Math.random() * 0.35;
+    const secondScore = second.rating + Math.random() * 0.35;
+    return secondScore - firstScore;
+  });
+
   const team1: Player[] = [];
   const team2: Player[] = [];
   let team1Rating = 0;
   let team2Rating = 0;
 
-  // Greedy assignment to team with lower total rating
   for (const player of sortedPlayers) {
-    if (team1Rating <= team2Rating) {
+    const team1HasSpace = team1.length <= team2.length;
+    const shouldGoTeam1 = team1HasSpace && team1Rating <= team2Rating;
+    if (shouldGoTeam1 || team2.length > team1.length) {
       team1.push(player);
       team1Rating += player.rating;
     } else {
@@ -38,6 +60,37 @@ export function balanceTeams(players: Player[]): BalanceResult {
       team2Rating += player.rating;
     }
   }
+
+  return {
+    team1,
+    team2,
+    team1Rating,
+    team2Rating,
+    balance: getBalance(team1Rating, team2Rating, team1.length, team2.length)
+  };
+}
+
+export function balanceTeams(players: Player[]): BalanceResult {
+  if (players.length < 2) {
+    throw new Error('Need at least 2 players to form teams');
+  }
+
+  const attemptCount = Math.max(25, players.length * 6);
+  const candidates: Candidate[] = [];
+
+  for (let attempt = 0; attempt < attemptCount; attempt += 1) {
+    candidates.push(buildCandidate(players));
+  }
+
+  candidates.sort((first, second) => first.balance - second.balance);
+  const bestBalance = candidates[0].balance;
+  const nearBest = candidates.filter(candidate => candidate.balance <= bestBalance + 0.12);
+  const picked = nearBest[Math.floor(Math.random() * nearBest.length)] || candidates[0];
+
+  const team1 = picked.team1;
+  const team2 = picked.team2;
+  const team1Rating = picked.team1Rating;
+  const team2Rating = picked.team2Rating;
 
   // Calculate team statistics
   const team1Avg = team1Rating / team1.length;

@@ -4,7 +4,7 @@
   "main": "unified-server-cjs.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only unified-server.ts",
-    "dev:simple": "node simple-server.js",
+    "dev:simple": "node unified-server-cjs.js",
     "dev:unified": "ts-node-dev --respawn --transpile-only unified-server.ts",
     "build": "tsc",
     "build:unified": "tsc",
@@ -15,7 +15,6 @@
     "body-parser": "^1.20.2",
     "express": "^4.19.2",
     "node-cron": "^3.0.3",
-    "twilio": "^4.21.0",
     "cors": "^2.8.6"
   },
   "devDependencies": {
