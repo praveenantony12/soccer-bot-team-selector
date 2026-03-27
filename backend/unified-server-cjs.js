@@ -132,11 +132,14 @@ async function ensureDailyReset() {
 }
 
 function isAfterCutoffNow() {
+  // TEAM_GENERATION_CRON is expressed in UTC — compare against UTC time
   const { hour: cutoffHour, minute: cutoffMinute } = parseCutoffTimeFromCron();
-  const easternNow = new Date(new Date().toLocaleString('en-US', { timeZone: TIMEZONE }));
-  if (easternNow.getHours() > cutoffHour) return true;
-  if (easternNow.getHours() < cutoffHour) return false;
-  return easternNow.getMinutes() >= cutoffMinute;
+  const now = new Date();
+  const utcHour = now.getUTCHours();
+  const utcMinute = now.getUTCMinutes();
+  if (utcHour > cutoffHour) return true;
+  if (utcHour < cutoffHour) return false;
+  return utcMinute >= cutoffMinute;
 }
 
 function sortPlayersByName(players) {
@@ -402,10 +405,12 @@ app.get('*', (req, res) => {
 });
 
 // 🕢 Team generation at cutoff time (configurable)
+// IMPORTANT: { timezone: 'UTC' } ensures the cron expression is always
+// interpreted as UTC regardless of the server's TZ env var (e.g. TZ=America/New_York on Render).
 cron.schedule(TEAM_GENERATION_CRON, async () => {
   console.log('⏰ Cron triggered at:', new Date().toISOString());
-  console.log('⏰ Cron schedule:', TEAM_GENERATION_CRON);
-  console.log('⏰ Timezone:', TIMEZONE);
+  console.log('⏰ Cron schedule (UTC):', TEAM_GENERATION_CRON);
+  console.log('⏰ Display timezone:', TIMEZONE);
   console.log('Generating teams at cutoff...');
   const generated = await generateTeamsForToday('cron');
   if (!generated.ok) {
@@ -413,16 +418,19 @@ cron.schedule(TEAM_GENERATION_CRON, async () => {
     return;
   }
   console.log('✅ Teams generated successfully via cron');
-});
+}, { timezone: 'UTC' });
 
-// Debug: Check current time vs cutoff
+// Debug: Check current time vs cutoff every minute
 setInterval(() => {
   const now = new Date();
   const { hour: cutoffHour, minute: cutoffMinute } = parseCutoffTimeFromCron();
   const localNow = new Date(now.toLocaleString('en-US', { timeZone: TIMEZONE }));
-  console.log(`🕐 Current time: ${localNow.getHours()}:${localNow.getMinutes().toString().padStart(2, '0')} ${TIMEZONE}`);
-  console.log(`🕐 Cutoff time: ${cutoffHour}:${cutoffMinute.toString().padStart(2, '0')} UTC`);
-  console.log(`🕐 After cutoff: ${isAfterCutoffNow()}`);
+  console.log(
+    `🕐 Current: ${localNow.getHours()}:${localNow.getMinutes().toString().padStart(2, '0')} ${TIMEZONE}` +
+    ` | UTC: ${now.getUTCHours()}:${now.getUTCMinutes().toString().padStart(2, '0')}` +
+    ` | Cutoff (UTC): ${cutoffHour}:${cutoffMinute.toString().padStart(2, '0')}` +
+    ` | After cutoff: ${isAfterCutoffNow()}`
+  );
 }, 60000); // Check every minute
 
 // Initialise the store, then start listening

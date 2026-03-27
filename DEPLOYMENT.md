@@ -104,13 +104,15 @@ The file `backend/unified-render.yaml` contains the full Render service configur
 | `PORT` | `10000` |
 | `TZ` | `America/New_York` |
 | `TEAM_TIMEZONE` | `America/New_York` |
-| `TEAM_GENERATION_CRON` | `59 3 * * *` | 11:59 PM EDT (3:59 AM UTC next day)
+| `TEAM_GENERATION_CRON` | `30 23 * * *` | 7:30 PM EDT (23:30 UTC) — **always in UTC**
 | `MIN_PLAYERS_TO_FORM_TEAMS` | `12` |
-| `ENABLE_MANUAL_GENERATE` | `true` | Temporarily enable to fix cron issue
+| `ENABLE_MANUAL_GENERATE` | `false` | Set `true` only for debugging
 | `SUPABASE_URL` | `your_supabase_project_url` | Supabase project URL
 | `SUPABASE_ANON_KEY` | `your_supabase_anon_key` | Supabase anonymous key |
 
-The `ENABLE_MANUAL_GENERATE=false` hides dev Generate button in production. Teams are formed only by the 11:59 PM cron.
+The `ENABLE_MANUAL_GENERATE=false` hides the dev Generate button in production. Teams are formed automatically by the cron.
+
+> **Important**: `TEAM_GENERATION_CRON` is **always interpreted as UTC** regardless of the `TZ` env var. Use UTC hours in the cron expression. The UI converts them to the `TEAM_TIMEZONE` for display.
 
 ### Time Conversion Reference (Daylight Saving Time)
 Since EDT = UTC-4, add 4 hours to your target time to get UTC cron hour:
