@@ -366,6 +366,23 @@ app.post('/api/reset', async (req, res) => {
   res.json({ success: true, message: 'State reset to collecting.' });
 });
 
+// 🔐 Admin reset — protected by ADMIN_SECRET env var, works in any environment
+// Usage: POST /api/admin/reset  with header  x-admin-secret: <ADMIN_SECRET>
+app.post('/api/admin/reset', async (req, res) => {
+  const adminSecret = process.env.ADMIN_SECRET;
+  if (!adminSecret) {
+    return res.status(503).json({ error: 'Admin reset is not configured (ADMIN_SECRET not set).' });
+  }
+  const provided = req.headers['x-admin-secret'];
+  if (!provided || provided !== adminSecret) {
+    return res.status(401).json({ error: 'Unauthorized.' });
+  }
+  const store = getPersistentStore();
+  await Promise.resolve(store.resetForNewDay());
+  console.log('🔐 Admin reset performed');
+  res.json({ success: true, message: 'State reset to collecting.' });
+});
+
 app.get("/api/health", async (req, res) => {
   await ensureDailyReset();
   const store = getPersistentStore();

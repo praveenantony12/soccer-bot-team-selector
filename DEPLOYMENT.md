@@ -107,12 +107,28 @@ The file `backend/unified-render.yaml` contains the full Render service configur
 | `TEAM_GENERATION_CRON` | `30 23 * * *` | 7:30 PM EDT (23:30 UTC) — **always in UTC**
 | `MIN_PLAYERS_TO_FORM_TEAMS` | `12` |
 | `ENABLE_MANUAL_GENERATE` | `false` | Set `true` only for debugging
+| `ADMIN_SECRET` | `<random-secret>` | Protects the `/api/admin/reset` endpoint
 | `SUPABASE_URL` | `your_supabase_project_url` | Supabase project URL
 | `SUPABASE_ANON_KEY` | `your_supabase_anon_key` | Supabase anonymous key |
 
 The `ENABLE_MANUAL_GENERATE=false` hides the dev Generate button in production. Teams are formed automatically by the cron.
 
 > **Important**: `TEAM_GENERATION_CRON` is **always interpreted as UTC** regardless of the `TZ` env var. Use UTC hours in the cron expression. The UI converts them to the `TEAM_TIMEZONE` for display.
+
+---
+
+### Emergency State Reset
+
+If production state becomes corrupted (e.g. test data was written, wrong teams formed), call:
+
+```bash
+curl -X POST https://soccer-bot-team-selector.onrender.com/api/admin/reset \
+  -H "x-admin-secret: YOUR_ADMIN_SECRET"
+```
+
+This resets the day back to `collecting` regardless of `ENABLE_MANUAL_GENERATE`.
+
+> **Local dev rule**: `.env.local` must NOT contain `SUPABASE_URL` / `SUPABASE_ANON_KEY`. Without those keys the server uses file-based storage and can never pollute the production database.
 
 ### Time Conversion Reference (Daylight Saving Time)
 Since EDT = UTC-4, add 4 hours to your target time to get UTC cron hour:
