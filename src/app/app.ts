@@ -2,7 +2,31 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { finalize, timeout } from 'rxjs/operators';
+import { FormationComponent } from './components/formation/formation.component';
 import { JoinComponent } from './components/join/join.component';
+
+interface FormationSlot {
+  position: {
+    x: number;
+    y: number;
+    label: string;
+    code: string;
+  };
+  player?: {
+    name: string;
+    rating?: number;
+  };
+}
+
+interface TeamFormation {
+  name: string;
+  description: string;
+  slots: FormationSlot[];
+  bench: Array<{
+    name: string;
+    rating?: number;
+  }>;
+}
 
 interface UiStateResponse {
   phase: 'collecting' | 'formed' | 'insufficient';
@@ -15,6 +39,10 @@ interface UiStateResponse {
     redTeam: string[];
     generatedAt?: string | null;
   };
+  formations?: {
+    team1: TeamFormation;
+    team2: TeamFormation;
+  } | null;
 }
 
 interface GeneratedTeamsResponse {
@@ -26,13 +54,17 @@ interface GeneratedTeamsResponse {
     team2: {
       players: Array<{ name: string }>;
     };
+    formations?: {
+      team1: TeamFormation;
+      team2: TeamFormation;
+    } | null;
     generatedAt?: string;
   };
 }
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, JoinComponent],
+  imports: [CommonModule, JoinComponent, FormationComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
@@ -112,7 +144,8 @@ export class App implements OnInit {
             blueTeam: t.team1.players.map((player) => player.name),
             redTeam: t.team2.players.map((player) => player.name),
             generatedAt: t.generatedAt || null
-          }
+          },
+          formations: t.formations || null
         };
         this.error = null;
         this.cdr.detectChanges();

@@ -24,6 +24,7 @@ const { persistentStore } = require('./dist/src/persistentStore');
 const { supabaseStore } = require('./dist/src/supabaseStore');
 const { getAllPlayerNames, getPlayerByName } = require('./dist/src/players');
 const { balanceTeams } = require('./dist/src/teamBalancer');
+const { generateFormations } = require('./dist/src/formationGenerator');
 
 const app = express();
 app.use(express.json());
@@ -31,11 +32,13 @@ app.use(express.json());
 const PORT = process.env.PORT || 3000;
 const TIMEZONE = process.env.TEAM_TIMEZONE || 'America/New_York';
 const MIN_PLAYERS = Number(process.env.MIN_PLAYERS_TO_FORM_TEAMS || 12);
+const MAX_PLAYERS = Number(process.env.MAX_PLAYERS_TO_FORM_TEAMS || 22);
 const TEAM_GENERATION_CRON = process.env.TEAM_GENERATION_CRON || '30 19 * * *';
 const ENABLE_MANUAL_GENERATE =
   process.env.ENABLE_MANUAL_GENERATE === 'true' || process.env.NODE_ENV !== 'production';
 
 let mutationQueue = Promise.resolve();
+let isAutoGenerating = false;
 
 function runMutation(task) {
   const next = mutationQueue.then(task, task);
@@ -160,6 +163,16 @@ async function generateTeamsForToday(source = 'manual') {
   await ensureDailyReset();
 
   const store = getPersistentStore();
+
+  // Guard: never overwrite already-formed teams.
+  // This prevents the cron (or any concurrent caller) from wiping formed teams
+  // by calling markInsufficient() when players have already been cleared after formation.
+  const existingStatus = await Promise.resolve(store.getDailyStatus());
+  if (existingStatus === 'formed') {
+    console.log(`ℹ️ Teams already formed today — skipping generation (source: ${source})`);
+    return { ok: true, result: await Promise.resolve(store.getFormedTeams()) };
+  }
+
   const names = await Promise.resolve(store.getPlayers());
   if (names.length < MIN_PLAYERS) {
     await Promise.resolve(store.markInsufficient());
@@ -168,6 +181,9 @@ async function generateTeamsForToday(source = 'manual') {
 
   const players = buildPlayers(names);
   const result = balanceTeams(players);
+  
+  // Generate formations for both teams
+  const formations = generateFormations(result.team1.players, result.team2.players);
 
   const normalized = {
     ...result,
@@ -181,6 +197,7 @@ async function generateTeamsForToday(source = 'manual') {
       name: 'Red Team',
       players: sortPlayersByName(result.team2.players)
     },
+    formations,
     generatedFrom: source,
     generatedAt: new Date().toISOString()
   };
@@ -220,7 +237,8 @@ async function getUiState() {
         blueTeam: formedTeams.team1.players.map(p => p.name),
         redTeam: formedTeams.team2.players.map(p => p.name),
         generatedAt: formedTeams.generatedAt || null
-      }
+      },
+      formations: formedTeams.formations || null
     };
   }
 
@@ -268,11 +286,10 @@ app.post("/api/join", async (req, res) => {
 
   const dailyStatus = await Promise.resolve(store.getDailyStatus());
   if (dailyStatus === 'formed') {
-    if (ENABLE_MANUAL_GENERATE) {
-      await Promise.resolve(store.resetForNewDay());
-    } else {
-      return res.status(400).json({ error: 'Join is closed for today. Teams already finalized.' });
-    }
+    // Never reset formed teams when someone tries to join — that would silently
+    // wipe the squad if a late join arrives right after auto-generation.
+    // Use POST /api/reset (or /api/admin/reset) to explicitly start a new session.
+    return res.status(400).json({ error: 'Join is closed for today. Teams already finalized.' });
   }
 
   try {
@@ -281,6 +298,27 @@ app.post("/api/join", async (req, res) => {
         await Promise.resolve(store.addPlayer(playerName));
       }
     });
+
+    // Check if we've reached MAX_PLAYERS and auto-generate teams
+    const currentCount = await Promise.resolve(store.getPlayerCount());
+    const dailyStatus = await Promise.resolve(store.getDailyStatus());
+    
+    if (currentCount >= MAX_PLAYERS && dailyStatus === 'collecting' && !isAutoGenerating) {
+      console.log(`🎯 Auto-generating teams: ${currentCount} players reached (MAX_PLAYERS limit)`);
+      isAutoGenerating = true;
+      try {
+        const generated = await generateTeamsForToday('max-players');
+        if (generated.ok) {
+          console.log('✅ Teams auto-generated due to MAX_PLAYERS reached');
+        } else {
+          console.log(`❌ Auto-generation failed: ${generated.error}`);
+        }
+      } catch (err) {
+        console.error('❌ Error during auto-generation:', err);
+      } finally {
+        isAutoGenerating = false;
+      }
+    }
   } catch (error) {
     console.error('❌ Failed to persist join request:', error);
     return res.status(500).json({ success: false, error: 'Failed to persist players' });

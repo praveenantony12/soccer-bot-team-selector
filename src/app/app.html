@@ -42,6 +42,26 @@
           </ul>
         </section>
       </div>
+
+      <!-- Formation Display -->
+      <div class="formations-section" *ngIf="uiState?.formations">
+        <div class="formations-header">
+          <h3>⚽ Tactical Formations</h3>
+          <p class="formation-subtitle">AI-optimized positions based on player strengths</p>
+        </div>
+        <div class="formations-grid">
+          <app-formation 
+            *ngIf="uiState?.formations?.team1"
+            [formation]="uiState!.formations!.team1" 
+            teamColor="blue">
+          </app-formation>
+          <app-formation 
+            *ngIf="uiState?.formations?.team2"
+            [formation]="uiState!.formations!.team2" 
+            teamColor="red">
+          </app-formation>
+        </div>
+      </div>
     </div>
 
     <div class="app-container" *ngIf="isCollecting || isInsufficient || !uiState">
@@ -343,6 +363,49 @@
   .team-card li:hover {
     background: rgba(255, 255, 255, 0.15);
     transform: scale(1.05);
+  }
+
+  /* Formations Section */
+  .formations-section {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .formations-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .formations-header h3 {
+    margin: 0;
+    color: #ffffff;
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+
+  .formation-subtitle {
+    color: #888;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    font-style: italic;
+  }
+
+  .formations-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+  }
+
+  @media (max-width: 768px) {
+    .formations-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .formations-section {
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+    }
   }
 
   @media (max-width: 768px) {

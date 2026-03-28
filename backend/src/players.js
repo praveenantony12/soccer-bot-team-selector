@@ -7,7 +7,7 @@ exports.getAllPlayerNames = getAllPlayerNames;
 exports.playersDB = [
   {
     name: 'Abhilash',
-    position: 'midfielder',
+    position: 'defender',
     rating: 12,
   },
   {
@@ -28,7 +28,7 @@ exports.playersDB = [
   {
     name: 'Arjun',
     position: 'defender',
-    rating: 13,
+    rating: 14,
   },
   {
     name: 'Ashley',
@@ -47,7 +47,7 @@ exports.playersDB = [
   },
   {
     name: 'Bishu',
-    position: 'forward',
+    position: 'defender',
     rating: 10,
   },
   {
@@ -107,7 +107,7 @@ exports.playersDB = [
   },
   {
     name: 'KK',
-    position: 'midfielder',
+    position: 'defender',
     rating: 9,
   },
   {
@@ -127,13 +127,13 @@ exports.playersDB = [
   },
   {
     name: 'Manish',
-    position: 'forward',
+    position: 'defender',
     rating: 3,
   },
   {
     name: 'Manoj B',
     position: 'goalkeeper',
-    rating: 6,
+    rating: 5,
   },
   {
     name: 'Manoj M',
@@ -197,7 +197,7 @@ exports.playersDB = [
   },
   {
     name: 'Rejul',
-    position: 'forward',
+    position: 'defender',
     rating: 11,
   },
   {
@@ -207,7 +207,7 @@ exports.playersDB = [
   },
   {
     name: 'Robin',
-    position: 'midfielder',
+    position: 'defender',
     rating: 9,
   },
   {
@@ -217,7 +217,7 @@ exports.playersDB = [
   },
   {
     name: 'Saju',
-    position: 'forward',
+    position: 'goalkeeper',
     rating: 5,
   },
   {
@@ -258,7 +258,7 @@ exports.playersDB = [
   {
     name: 'Sini',
     position: 'defender',
-    rating: 4,
+    rating: 3,
   },
   {
     name: 'Sobin',
@@ -309,7 +309,7 @@ exports.playersDB = [
     name: 'Zubair',
     position: 'midfielder',
     rating: 15,
-  },
+  }
 ];
 function getPlayerByName(name) {
   return exports.playersDB.find(function (p) {

@@ -9,7 +9,7 @@ export interface Player {
 export const playersDB: Player[] = [
   {
     name: 'Abhilash',
-    position: 'midfielder',
+    position: 'defender',
     rating: 12,
   },
   {
@@ -30,7 +30,7 @@ export const playersDB: Player[] = [
   {
     name: 'Arjun',
     position: 'defender',
-    rating: 13,
+    rating: 14,
   },
   {
     name: 'Ashley',
@@ -49,7 +49,7 @@ export const playersDB: Player[] = [
   },
   {
     name: 'Bishu',
-    position: 'forward',
+    position: 'defender',
     rating: 10,
   },
   {
@@ -109,7 +109,7 @@ export const playersDB: Player[] = [
   },
   {
     name: 'KK',
-    position: 'midfielder',
+    position: 'defender',
     rating: 9,
   },
   {
@@ -129,13 +129,13 @@ export const playersDB: Player[] = [
   },
   {
     name: 'Manish',
-    position: 'forward',
+    position: 'defender',
     rating: 3,
   },
   {
     name: 'Manoj B',
     position: 'goalkeeper',
-    rating: 6,
+    rating: 5,
   },
   {
     name: 'Manoj M',
@@ -199,7 +199,7 @@ export const playersDB: Player[] = [
   },
   {
     name: 'Rejul',
-    position: 'forward',
+    position: 'defender',
     rating: 11,
   },
   {
@@ -209,7 +209,7 @@ export const playersDB: Player[] = [
   },
   {
     name: 'Robin',
-    position: 'midfielder',
+    position: 'defender',
     rating: 9,
   },
   {
@@ -219,7 +219,7 @@ export const playersDB: Player[] = [
   },
   {
     name: 'Saju',
-    position: 'forward',
+    position: 'goalkeeper',
     rating: 5,
   },
   {
@@ -260,7 +260,7 @@ export const playersDB: Player[] = [
   {
     name: 'Sini',
     position: 'defender',
-    rating: 4,
+    rating: 3,
   },
   {
     name: 'Sobin',
@@ -311,7 +311,7 @@ export const playersDB: Player[] = [
     name: 'Zubair',
     position: 'midfielder',
     rating: 15,
-  },
+  }
 ];
 
 export function getPlayerByName(name: string): Player | undefined {
