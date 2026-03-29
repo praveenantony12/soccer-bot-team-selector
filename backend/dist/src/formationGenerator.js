@@ -611,35 +611,35 @@ function generateFormations(team1Players, team2Players) {
 function getFormationDescription(formation) {
     const descriptions = {
         // 6-a-side
-        '2-2-1': 'Compact balanced shape',
-        '1-3-1': 'Three in midfield, lone striker',
-        '3-1-1': 'Solid defensive base, lone striker',
+        '2-2-1': 'Two defenders anchor the shape, two mids control the tempo, lone striker leads the press',
+        '1-3-1': 'Single defender holds the line, three-man midfield dominates possession, lone striker hunts space',
+        '3-1-1': 'Three-man defensive block absorbs pressure, a single pivot shields the back, striker operates alone up top',
         // 7-a-side
-        '3-2-1': 'Defensive triangle, two mids',
-        '2-3-1': 'Midfield-dominant shape',
-        '2-2-2': 'Attacking shape with twin strikers',
+        '3-2-1': 'Defensive triangle provides a solid base, two midfielders link play, lone striker channels pressure',
+        '2-3-1': 'Double back line stays compact, three mids overload the centre, striker exploits pockets of space',
+        '2-2-2': 'Two pacey strikers stretch the defence, two mids support in transition, two defenders hold width',
         // 8-a-side
-        '3-3-1': 'Balanced three-line structure',
-        '4-2-1': 'Solid back four, lone striker',
-        '3-2-2': 'Attacking with twin strikers',
-        '2-4-1': 'Midfield overload, lone striker',
+        '3-3-1': 'Solid three-line structure with equal defensive and midfield depth, lone striker holds the line',
+        '4-2-1': 'Back four offers defensive security, two DMs screen, attacking mid fuels the lone striker',
+        '3-2-2': 'Three defenders protect the goal, two mids drive the attack, twin strikers create danger in the final third',
+        '2-4-1': 'Midfield four dominates possession and box-to-box transitions, lone striker pins defenders deep',
         // 9-a-side
-        '3-4-1': 'Midfield powerhouse, lone striker',
-        '4-3-1': 'Solid back four, three mids',
-        '3-3-2': 'Balanced with twin strikers',
-        '4-2-2': 'Back four, twin strikers',
+        '3-4-1': 'Three-man defence with a powerful four-man midfield, attacking midfielder feeds the lone striker',
+        '4-3-1': 'Disciplined back four, three-man mid controls the game, attacking midfielder links to a single striker',
+        '3-3-2': 'Balanced three-line structure with two strikers providing constant pressure on the last line',
+        '4-2-2': 'Back four provides defensive stability, two midfielders recycle possession, twin strikers lead the attack',
         // 10-a-side
-        '4-3-2': 'Modern balanced shape',
-        '3-4-2': 'Midfield-heavy, two up front',
-        '4-4-1': 'Compact defensive block',
-        '3-5-1': 'Midfield overload with wing-backs',
+        '4-3-2': 'Modern balanced shape with a strong mid-block, two forwards press high and create space behind',
+        '3-4-2': 'Four midfielders dominate the centre, two attackers combine in tight spaces, three at the back maintain cover',
+        '4-4-1': 'Compact two-banks-of-four defensive structure, wide mids track back, lone striker holds and links play',
+        '3-5-1': 'Wing-backs provide width and overlap, three-man centre-mid controls the game, lone striker leads the line',
         // 11-a-side
-        '4-4-2': 'Classic balanced with twin strikers',
-        '4-3-3': 'Attacking with width from wingers',
-        '3-5-2': 'Midfield dominant with wing-backs',
-        '4-2-3-1': 'Attacking midfield trio behind striker',
-        '5-3-2': 'Defensive solidity, three center-backs',
-        '4-1-4-1': 'Solid base with protective midfielder',
+        '4-4-2': 'Classic symmetric shape — solid back four, disciplined midfield box, twin strikers apply constant pressure',
+        '4-3-3': 'Attacking full-backs combine with wide forwards, three mids control tempo, front three press relentlessly',
+        '3-5-2': 'Wing-backs bomb forward to support the attack, three centre-mids dominate possession, two strikers link',
+        '4-2-3-1': 'Double pivot screens the defence, fluid attacking trio behind a lone striker creates overloads everywhere',
+        '5-3-2': 'Three centre-backs and two wing-backs provide defensive solidity, three mids drive, two strikers combine',
+        '4-1-4-1': 'Defensive midfielder sits in front of back four, wide mids stretch the pitch, lone striker leads pressing',
     };
-    return descriptions[formation] || 'Balanced formation';
+    return descriptions[formation] || 'Balanced formation tailored to the squad\'s strengths';
 }
