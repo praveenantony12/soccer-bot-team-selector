@@ -32,12 +32,16 @@ function shuffleArray<T>(arr: T[]): T[] {
   return list;
 }
 
+function getPreferredZone(p: Player): string {
+  return p.firstPreferredPosition || p.position || 'player';
+}
+
 function computePositionBalance(team1: Player[], team2: Player[]): number {
-  const positions = new Set([...team1, ...team2].map(p => p.position));
+  const positions = new Set([...team1, ...team2].map(getPreferredZone));
   let total = 0;
   for (const pos of positions) {
-    const t1 = team1.filter(p => p.position === pos).length;
-    const t2 = team2.filter(p => p.position === pos).length;
+    const t1 = team1.filter(p => getPreferredZone(p) === pos).length;
+    const t2 = team2.filter(p => getPreferredZone(p) === pos).length;
     total += Math.abs(t1 - t2);
   }
   return total;
@@ -46,7 +50,7 @@ function computePositionBalance(team1: Player[], team2: Player[]): number {
 function buildPositionAwareCandidate(players: Player[]): Candidate {
   const byPosition = new Map<string, Player[]>();
   for (const player of players) {
-    const pos = player.position || 'player';
+    const pos = getPreferredZone(player);
     if (!byPosition.has(pos)) byPosition.set(pos, []);
     byPosition.get(pos)!.push(player);
   }
@@ -75,7 +79,7 @@ function buildPositionAwareCandidate(players: Player[]): Candidate {
     let swapped = false;
     for (let i = 0; i < team1.length; i++) {
       for (let j = 0; j < team2.length; j++) {
-        if (team1[i].position !== team2[j].position) continue;
+        if (getPreferredZone(team1[i]) !== getPreferredZone(team2[j])) continue;
         const newT1 = t1Rating - team1[i].rating + team2[j].rating;
         const newT2 = t2Rating - team2[j].rating + team1[i].rating;
         if (Math.abs(newT1 - newT2) < Math.abs(t1Rating - t2Rating)) {

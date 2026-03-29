@@ -400,10 +400,10 @@ const POSITION_PRIORITY: Record<string, number> = {
 function selectBestFormation(players: Player[]): { name: string; positions: FieldPosition[] } {
   const playerCount = players.length;
 
-  // Count each outfield position type
+  // Count each outfield position type, using first preferred position as primary
   let defenders = 0, midfielders = 0, forwards = 0;
   for (const p of players) {
-    const pos = (p.position || 'player').toLowerCase();
+    const pos = (p.firstPreferredPosition || p.position || 'player').toLowerCase();
     if (pos === 'defender') defenders++;
     else if (pos === 'forward') forwards++;
     else midfielders++; // midfielder, goalkeeper, player all go here
@@ -456,62 +456,108 @@ function selectBestFormation(players: Player[]): { name: string; positions: Fiel
 /**
  * Calculate fitness score for a player at a given formation position.
  *
- * Hard constraint (checked first):
- *   Each player type has a strict list of allowed zones (ALLOWED_ZONES).
- *   If the slot's zone is outside that list, return -1 (disqualified).
- *   The greedy loop uses bestScore = -1 as initial value, so -1 scored
- *   players are never chosen — a slot stays empty rather than breaking rules.
+ * Evaluates all three preferred positions in priority order.
+ * Each preference gets a successively larger penalty so the algorithm
+ * naturally places players in their highest-priority preferred zone
+ * while still allowing fallback to 2nd / 3rd preference when needed.
  *
- * Fallback priority within allowed zones (proximity along GK→DEF→MID→FWD):
- *   Same zone (preferred):   200 pts
- *   1 step away (adjacent):  100 pts  (e.g. midfielder ↔ defender)
- *   2 steps away:             40 pts  (e.g. defender ↔ forward via MID)
- *   3 steps away:             10 pts  (theoretical max for midfielder)
+ * Preference penalties:  1st → 0 pts,  2nd → −30 pts,  3rd → −60 pts
+ * Proximity scores:      same zone → 200,  1-step → 100,  2-step → 40,  3-step → 10
+ * Rating bonus:          rating × 2 (max ~40 pts — never overrides zone tier)
  *
- * Rating bonus (max ~40 pts) only differentiates players within the same zone tier.
+ * Returns −1 if NO preferred position allows the slot's zone (disqualified).
+ * The greedy loop uses bestScore = −1 as its initial value, so disqualified
+ * players are never chosen over qualified ones.
  */
 function calculatePositionFitness(player: Player, positionCode: string): number {
-  const raw = (player.position || 'player').toLowerCase();
-  const playerZone = raw === 'player' ? 'midfielder' : raw;
   const posZone = POSITION_ZONE[positionCode] ?? 'midfielder';
 
-  // Hard constraint: disqualify if zone is not in the player's allowed list
-  const allowed = ALLOWED_ZONES[playerZone] || ALLOWED_ZONES['player'];
-  if (!allowed.includes(posZone)) {
-    return -1;
+  // Build ordered list of preferred zones: 1st → 2nd → 3rd → legacy position
+  const prefs: string[] = [
+    player.firstPreferredPosition,
+    player.secondPreferredPosition,
+    player.thirdPreferredPosition,
+    player.position,
+  ]
+    .filter((p): p is string => Boolean(p))
+    .map(p => p.toLowerCase());
+
+  if (prefs.length === 0) prefs.push('player');
+
+  // Penalty increases for each successive preference
+  const PREF_PENALTY = [0, 30, 60, 90];
+
+  let bestScore = -1;
+
+  for (let i = 0; i < prefs.length; i++) {
+    const raw = prefs[i];
+    const playerZone = raw === 'player' ? 'midfielder' : raw;
+    const allowed = ALLOWED_ZONES[playerZone] ?? ALLOWED_ZONES['player'];
+
+    // Hard constraint: this preference zone doesn't allow the slot — try next
+    if (!allowed.includes(posZone)) continue;
+
+    const playerIndex = ZONE_ORDER.indexOf(playerZone);
+    const posIndex = ZONE_ORDER.indexOf(posZone);
+    const distance = (playerIndex === -1 || posIndex === -1)
+      ? PROXIMITY_SCORES.length - 1
+      : Math.abs(playerIndex - posIndex);
+
+    const proximityScore = PROXIMITY_SCORES[Math.min(distance, PROXIMITY_SCORES.length - 1)];
+    const ratingBonus = (player.rating || 5) * 2;
+    const penalty = PREF_PENALTY[Math.min(i, PREF_PENALTY.length - 1)];
+    const score = proximityScore + ratingBonus - penalty;
+
+    if (score > bestScore) bestScore = score;
   }
 
-  // Proximity score within allowed zones
-  const playerIndex = ZONE_ORDER.indexOf(playerZone);
-  const posIndex = ZONE_ORDER.indexOf(posZone);
-  const distance = (playerIndex === -1 || posIndex === -1)
-    ? PROXIMITY_SCORES.length - 1
-    : Math.abs(playerIndex - posIndex);
+  // Tiny tie-breaker — never large enough to change zone or preference tier
+  if (bestScore > -1) bestScore += Math.random() * 2;
 
-  const proximityScore = PROXIMITY_SCORES[Math.min(distance, PROXIMITY_SCORES.length - 1)];
-  const ratingBonus = (player.rating || 5) * 2;
-  // Tiny tie-breaker — never large enough to change zone preference
-  const tieBreaker = Math.random() * 2;
-  return proximityScore + ratingBonus + tieBreaker;
+  return bestScore;
 }
 
 /**
  * Unconstrained proximity score used only in the force-assignment pass.
  * Unlike calculatePositionFitness, this never returns -1 — every player
- * is eligible for every slot.  The zone-distance penalty still applies so
- * each stranded player is placed in the closest available zone.
+ * is eligible for every slot. Evaluates all three preferred positions and
+ * uses the best zone-proximity score (with preference penalties), ensuring
+ * stranded players land in the closest zone to any of their preferences.
  */
 function unconstrainedFitness(player: Player, positionCode: string): number {
-  const raw = (player.position || 'player').toLowerCase();
-  const playerZone = raw === 'player' ? 'midfielder' : raw;
   const posZone = POSITION_ZONE[positionCode] ?? 'midfielder';
-  const playerIndex = ZONE_ORDER.indexOf(playerZone);
-  const posIndex   = ZONE_ORDER.indexOf(posZone);
-  const distance   = (playerIndex === -1 || posIndex === -1)
-    ? PROXIMITY_SCORES.length - 1
-    : Math.abs(playerIndex - posIndex);
-  return PROXIMITY_SCORES[Math.min(distance, PROXIMITY_SCORES.length - 1)]
-    + (player.rating || 5) * 2;
+
+  const prefs: string[] = [
+    player.firstPreferredPosition,
+    player.secondPreferredPosition,
+    player.thirdPreferredPosition,
+    player.position,
+  ]
+    .filter((p): p is string => Boolean(p))
+    .map(p => p.toLowerCase());
+
+  if (prefs.length === 0) prefs.push('player');
+
+  const PREF_PENALTY = [0, 30, 60, 90];
+
+  let bestScore = -Infinity;
+
+  for (let i = 0; i < prefs.length; i++) {
+    const raw = prefs[i];
+    const playerZone = raw === 'player' ? 'midfielder' : raw;
+    const playerIndex = ZONE_ORDER.indexOf(playerZone);
+    const posIndex = ZONE_ORDER.indexOf(posZone);
+    const distance = (playerIndex === -1 || posIndex === -1)
+      ? PROXIMITY_SCORES.length - 1
+      : Math.abs(playerIndex - posIndex);
+    const proximityScore = PROXIMITY_SCORES[Math.min(distance, PROXIMITY_SCORES.length - 1)];
+    const ratingBonus = (player.rating || 5) * 2;
+    const penalty = PREF_PENALTY[Math.min(i, PREF_PENALTY.length - 1)];
+    const score = proximityScore + ratingBonus - penalty;
+    if (score > bestScore) bestScore = score;
+  }
+
+  return bestScore;
 }
 
 /**
@@ -632,35 +678,35 @@ export function generateFormations(
 function getFormationDescription(formation: string): string {
   const descriptions: Record<string, string> = {
     // 6-a-side
-    '2-2-1': 'Compact 6v6 with balanced shape',
-    '1-3-1': 'Midfield-heavy 6v6 with three in the middle',
-    '3-1-1': 'Defensive 6v6 with three at the back',
+    '2-2-1': 'Compact balanced shape',
+    '1-3-1': 'Three in midfield, lone striker',
+    '3-1-1': 'Solid defensive base, lone striker',
     // 7-a-side
-    '3-2-1': 'Solid 7v7 with defensive triangle',
-    '2-3-1': 'Midfield-dominant 7v7 formation',
-    '2-2-2': 'Attacking 7v7 with twin strikers',
+    '3-2-1': 'Defensive triangle, two mids',
+    '2-3-1': 'Midfield-dominant shape',
+    '2-2-2': 'Attacking shape with twin strikers',
     // 8-a-side
-    '3-3-1': 'Balanced 8v8 with solid structure',
-    '4-2-1': 'Defensive 8v8 with four at the back',
-    '3-2-2': 'Attacking 8v8 with twin strikers',
-    '2-4-1': 'Midfield-loaded 8v8 formation',
+    '3-3-1': 'Balanced three-line structure',
+    '4-2-1': 'Solid back four, lone striker',
+    '3-2-2': 'Attacking with twin strikers',
+    '2-4-1': 'Midfield overload, lone striker',
     // 9-a-side
-    '3-4-1': 'Midfield powerhouse 9v9 with lone striker',
-    '4-3-1': 'Defensively solid 9v9 formation',
-    '3-3-2': 'Attacking 9v9 with twin strikers',
-    '4-2-2': 'Balanced 9v9 with two up front',
+    '3-4-1': 'Midfield powerhouse, lone striker',
+    '4-3-1': 'Solid back four, three mids',
+    '3-3-2': 'Balanced with twin strikers',
+    '4-2-2': 'Back four, twin strikers',
     // 10-a-side
-    '4-3-2': 'Modern balanced 10v10 formation',
-    '3-4-2': 'Midfield-heavy 10v10 with two up front',
-    '4-4-1': 'Defensive-minded 10v10 formation',
-    '3-5-1': 'Midfield dominant 10v10 with wing-backs',
+    '4-3-2': 'Modern balanced shape',
+    '3-4-2': 'Midfield-heavy, two up front',
+    '4-4-1': 'Compact defensive block',
+    '3-5-1': 'Midfield overload with wing-backs',
     // 11-a-side
-    '4-4-2': 'Classic balanced formation with solid defense and twin strikers',
-    '4-3-3': 'Attacking formation with width from wingers',
-    '3-5-2': 'Midfield dominant with wing-backs providing width',
-    '4-2-3-1': 'Modern flexible formation with attacking midfield trio',
-    '5-3-2': 'Defensive solidity with three center-backs',
-    '4-1-4-1': 'Solid defensive base with protective midfielder',
+    '4-4-2': 'Classic balanced with twin strikers',
+    '4-3-3': 'Attacking with width from wingers',
+    '3-5-2': 'Midfield dominant with wing-backs',
+    '4-2-3-1': 'Attacking midfield trio behind striker',
+    '5-3-2': 'Defensive solidity, three center-backs',
+    '4-1-4-1': 'Solid base with protective midfielder',
   };
   return descriptions[formation] || 'Balanced formation';
 }
