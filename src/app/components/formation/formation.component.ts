@@ -58,14 +58,19 @@ interface TeamFormation {
 
         <div
           *ngFor="let slot of formation.slots"
-          class="player-chip"
+          class="player-node"
           [class.goalkeeper]="slot.position.code === 'GK'"
           [style.left.%]="slot.position.x"
           [style.top.%]="slot.position.y"
         >
-          <span class="chip-name" *ngIf="slot.player" [title]="slot.player.name">
-            {{ formatName(slot.player.name) }}
-          </span>
+          <svg class="jersey-svg" viewBox="0 0 50 55" xmlns="http://www.w3.org/2000/svg">
+            <path class="jersey-body" d="M12,4 C12,2 38,2 38,4 L50,13 L40,24 L38,20 L38,52 L12,52 L12,20 L10,24 L0,13 Z"/>
+            <path class="jersey-collar" d="M12,4 Q25,13 38,4" fill="none" stroke-linecap="round" stroke-width="2"/>
+            <text class="jersey-pos-text" x="25" y="38" text-anchor="middle" dominant-baseline="middle">{{ slot.position.code }}</text>
+          </svg>
+          <div class="player-label" *ngIf="slot.player">
+            <span class="player-name" [title]="slot.player.name">{{ formatName(slot.player.name) }}</span>
+          </div>
         </div>
       </div>
 
@@ -255,98 +260,116 @@ interface TeamFormation {
     .corner-arc.bottom-left { bottom: -2%; left: -2%;   border-bottom: none; border-left: none; }
     .corner-arc.bottom-right{ bottom: -2%; right: -2%;  border-bottom: none; border-right: none; }
 
-    /* ── Player chip — name only ─────────────────────────────────────── */
-    .player-chip {
+    /* ── Player node — jersey + label ─────────────────────────────── */
+    .player-node {
       position: absolute;
       transform: translate(-50%, -50%);
-      min-width: 58px;
-      max-width: 80px;
-      padding: 0.32rem 0.55rem;
-      border-radius: 20px;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
-      cursor: default;
+      gap: 2px;
       z-index: 10;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      /* defaults overridden per team below */
-      background: rgba(255,255,255,0.15);
-      border: 1.5px solid rgba(255,255,255,0.3);
-      box-shadow: 0 3px 12px rgba(0,0,0,0.35);
+      cursor: default;
+      transition: transform 0.2s ease;
     }
 
-    .blue-team .player-chip {
-      background: linear-gradient(135deg, #5147ce, #3b29b8);
-      border-color: rgba(108, 92, 231, 0.7);
-      box-shadow: 0 3px 14px rgba(72,52,212,0.45), inset 0 1px 0 rgba(255,255,255,0.1);
-    }
-
-    .red-team .player-chip {
-      background: linear-gradient(135deg, #d63845, #be2a1e);
-      border-color: rgba(238, 90, 36, 0.7);
-      box-shadow: 0 3px 14px rgba(214,48,49,0.45), inset 0 1px 0 rgba(255,255,255,0.1);
-    }
-
-    .player-chip.goalkeeper {
-      background: linear-gradient(135deg, #f5c518, #e0a800);
-      border-color: rgba(245, 197, 24, 0.8);
-      box-shadow: 0 3px 14px rgba(224,168,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15);
-    }
-
-    .player-chip:hover {
-      transform: translate(-50%, -50%) scale(1.18);
+    .player-node:hover {
+      transform: translate(-50%, -50%) scale(1.15);
       z-index: 20;
     }
 
-    .blue-team .player-chip:hover {
-      box-shadow: 0 6px 22px rgba(108,92,231,0.6), inset 0 1px 0 rgba(255,255,255,0.15);
+    /* Jersey SVG */
+    .jersey-svg {
+      width: 56px;
+      height: auto;
+      display: block;
+      flex-shrink: 0;
     }
 
-    .red-team .player-chip:hover {
-      box-shadow: 0 6px 22px rgba(214,48,49,0.6), inset 0 1px 0 rgba(255,255,255,0.15);
+    .jersey-body {
+      stroke: rgba(255,255,255,0.4);
+      stroke-width: 1.5;
+      stroke-linejoin: round;
     }
 
-    .player-chip.goalkeeper:hover {
-      box-shadow: 0 6px 22px rgba(224,168,0,0.65), inset 0 1px 0 rgba(255,255,255,0.2);
+    /* Blue team: navy */
+    .blue-team .jersey-body {
+      fill: #1a2f6e;
+    }
+    .blue-team .player-node:hover .jersey-svg {
+      filter: drop-shadow(0 0 7px rgba(90,110,220,0.75)) drop-shadow(0 3px 8px rgba(0,0,0,0.5));
+    }
+    .blue-team .jersey-svg {
+      filter: drop-shadow(0 0 5px rgba(90,110,220,0.55)) drop-shadow(0 3px 6px rgba(0,0,0,0.45));
     }
 
-    .chip-name {
-      font-size: 0.7rem;
-      font-weight: 700;
-      color: #fff;
+    /* Red team: maroon */
+    .red-team .jersey-body {
+      fill: #7b1212;
+    }
+    .red-team .player-node:hover .jersey-svg {
+      filter: drop-shadow(0 0 7px rgba(190,30,30,0.75)) drop-shadow(0 3px 8px rgba(0,0,0,0.5));
+    }
+    .red-team .jersey-svg {
+      filter: drop-shadow(0 0 5px rgba(190,30,30,0.55)) drop-shadow(0 3px 6px rgba(0,0,0,0.45));
+    }
+
+    /* Goalkeeper: amber */
+    .player-node.goalkeeper .jersey-body {
+      fill: #e8a800;
+      stroke: rgba(255,255,255,0.5);
+    }
+    .player-node.goalkeeper .jersey-svg {
+      filter: drop-shadow(0 0 5px rgba(230,170,0,0.6)) drop-shadow(0 3px 6px rgba(0,0,0,0.45));
+    }
+    .player-node.goalkeeper:hover .jersey-svg {
+      filter: drop-shadow(0 0 8px rgba(230,170,0,0.8)) drop-shadow(0 3px 8px rgba(0,0,0,0.5));
+    }
+
+    /* Jersey collar & position text */
+    .jersey-collar {
+      stroke: rgba(255,255,255,0.6);
+    }
+    .jersey-pos-text {
+      fill: rgba(255,255,255,0.95);
+      font-size: 9px;
+      font-weight: 800;
+      font-family: inherit;
+      letter-spacing: 0.5px;
+    }
+    .player-node.goalkeeper .jersey-pos-text {
+      fill: rgba(20,10,0,0.85);
+    }
+
+    /* Player label below jersey — name only */
+    .player-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.93);
+      border-radius: 4px;
+      padding: 2px 6px;
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 100%;
-      text-align: center;
-      letter-spacing: 0.25px;
-      text-shadow: 0 1px 4px rgba(0,0,0,0.45);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.35);
       line-height: 1;
     }
 
-    .player-chip.goalkeeper .chip-name {
-      color: #1a1200;
-      text-shadow: 0 1px 2px rgba(255,255,255,0.2);
+    .player-name {
+      font-size: 0.6rem;
+      font-weight: 800;
+      color: #111827;
+      white-space: nowrap;
+      text-align: center;
+      letter-spacing: 0.3px;
+      line-height: 1.3;
     }
 
-    /* Size adjustments for different squad sizes */
-    .pitch.small-squad .player-chip {
-      min-width: 70px;
-      max-width: 92px;
-      padding: 0.38rem 0.65rem;
-    }
-    .pitch.small-squad .chip-name {
-      font-size: 0.8rem;
-    }
+    /* Size adjustments for squad sizes */
+    .pitch.small-squad .jersey-svg   { width: 64px; }
+    .pitch.small-squad .player-name  { font-size: 0.68rem; }
 
-    .pitch.medium-squad .player-chip {
-      min-width: 62px;
-      max-width: 84px;
-      padding: 0.34rem 0.58rem;
-    }
-    .pitch.medium-squad .chip-name {
-      font-size: 0.74rem;
-    }
+    .pitch.medium-squad .jersey-svg   { width: 60px; }
+    .pitch.medium-squad .player-name  { font-size: 0.62rem; }
 
     /* ── Squad count footer ─────────────────────────────────────────── */
     .squad-info {
@@ -384,20 +407,14 @@ interface TeamFormation {
         padding: 0.45rem 0.9rem;
       }
 
-      .player-chip {
-        min-width: 48px;
-        max-width: 65px;
-        padding: 0.28rem 0.44rem;
-      }
-      .chip-name { font-size: 0.62rem; }
+      .jersey-svg   { width: 46px; }
+      .player-name  { font-size: 0.52rem; }
 
-      .pitch.small-squad .player-chip,
-      .pitch.medium-squad .player-chip {
-        min-width: 54px;
-        max-width: 70px;
-      }
-      .pitch.small-squad .chip-name,
-      .pitch.medium-squad .chip-name { font-size: 0.68rem; }
+      .pitch.small-squad .jersey-svg   { width: 54px; }
+      .pitch.small-squad .player-name  { font-size: 0.58rem; }
+
+      .pitch.medium-squad .jersey-svg   { width: 50px; }
+      .pitch.medium-squad .player-name  { font-size: 0.54rem; }
     }
   `]
 })
@@ -406,6 +423,6 @@ export class FormationComponent {
   @Input() teamColor: 'blue' | 'red' = 'blue';
 
   formatName(name: string): string {
-    return name.trim();
+    return name.trim().toUpperCase();
   }
 }
