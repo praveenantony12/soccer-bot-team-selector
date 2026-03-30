@@ -60,12 +60,27 @@ async function initActiveStore() {
   }
 
   try {
-    // Force initialization to complete and verify it actually works
-    const players = await supabaseStore.getPlayers();
-    console.log(`✅ Supabase store verified — using Supabase for persistence (${players.length} players today)`);
-    activeStore = supabaseStore;
+    // Retry Supabase connection up to 3 times to handle transient cold-start network issues
+    // (both Render and Supabase free tier can have startup delays simultaneously)
+    const MAX_RETRIES = 3;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const players = await supabaseStore.getPlayers();
+        console.log(`✅ Supabase store verified (attempt ${attempt}) — ${players.length} players today`);
+        activeStore = supabaseStore;
+        return;
+      } catch (e) {
+        console.error(`⚠️  Supabase init attempt ${attempt}/${MAX_RETRIES} failed: ${e.message}`);
+        if (attempt < MAX_RETRIES) {
+          await new Promise(resolve => setTimeout(resolve, 2000 * attempt)); // 2s, 4s backoff
+        } else {
+          throw e; // rethrow after final attempt
+        }
+      }
+    }
   } catch (e) {
-    console.error('❌ Supabase store init failed, falling back to file storage:', e.message);
+    console.error('❌ Supabase store unavailable after all retries — degraded file-store mode:', e.message);
+    console.error('⚠️  WARNING: Data will NOT persist across restarts in this mode.');
     activeStore = persistentStore;
   }
 }
@@ -109,7 +124,7 @@ app.use(cors({
   origin: true, // Allow all origins in development
   methods: ["GET","POST"],
   credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-key']
 }));
 
 // 🔄 API Routes - MUST come before static files
@@ -331,6 +346,13 @@ app.post("/api/join", async (req, res) => {
 });
 
 app.post("/api/leave", async (req, res) => {
+  // Only admins may remove a player — validate x-admin-key against ADMIN_SECRET
+  const adminKey = req.headers['x-admin-key'];
+  const adminSecret = process.env.ADMIN_SECRET;
+  if (!adminSecret || adminKey !== adminSecret) {
+    return res.status(403).json({ error: 'Unauthorized: admin access required to remove players' });
+  }
+
   await ensureDailyReset();
   const store = getPersistentStore();
   const { name } = req.body;
@@ -402,6 +424,20 @@ app.post('/api/reset', async (req, res) => {
   const store = getPersistentStore();
   await Promise.resolve(store.resetForNewDay());
   res.json({ success: true, message: 'State reset to collecting.' });
+});
+
+// 🔐 Verify admin key — used by the frontend to decide whether to show remove buttons
+// Returns 200 {valid: true} only if x-admin-key matches ADMIN_SECRET
+app.get('/api/admin/verify', (req, res) => {
+  const adminSecret = process.env.ADMIN_SECRET;
+  if (!adminSecret) {
+    return res.status(503).json({ valid: false, reason: 'ADMIN_SECRET not configured' });
+  }
+  const provided = req.headers['x-admin-key'];
+  if (provided && provided === adminSecret) {
+    return res.json({ valid: true });
+  }
+  return res.status(403).json({ valid: false });
 });
 
 // 🔐 Admin reset — protected by ADMIN_SECRET env var, works in any environment

@@ -89,9 +89,10 @@
         <span class="chip-avatar">{{ p.charAt(0).toUpperCase() }}</span>
         {{ p | titlecase }}
         <button 
+          *ngIf="isAdmin"
           class="chip-leave-btn"
           (click)="leave(p)"
-          title="Leave game"
+          title="Remove player"
         >
           ✕
         </button>

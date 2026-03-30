@@ -22,6 +22,8 @@ export class JoinComponent implements OnInit {
   initialLoading = false;
   currentLoading = false;
   searchTerm = '';
+  isAdmin = false;
+  private adminKey = '';
 
   constructor(private http: HttpClient, private cdr: ChangeDetectorRef) { }
 
@@ -45,6 +47,16 @@ export class JoinComponent implements OnInit {
   }
 
   ngOnInit() {
+    const params = new URLSearchParams(window.location.search);
+    this.adminKey = params.get('admin') || '';
+    if (this.adminKey) {
+      this.http.get<{ valid: boolean }>(`${this.BASE_URL}/api/admin/verify`, {
+        headers: { 'x-admin-key': this.adminKey }
+      }).subscribe({
+        next: (res) => { this.isAdmin = res.valid === true; this.cdr.detectChanges(); },
+        error: () => { this.isAdmin = false; }
+      });
+    }
     this.loadPlayers();
     this.loadCurrent();
   }
@@ -130,7 +142,9 @@ export class JoinComponent implements OnInit {
   }
 
   leave(name: string) {
-    this.http.post(`${this.BASE_URL}/api/leave`, { name }).subscribe({
+    this.http.post(`${this.BASE_URL}/api/leave`, { name }, {
+      headers: { 'x-admin-key': this.adminKey }
+    }).subscribe({
       next: () => {
         this.loadCurrent(); // This will call updateAvailablePlayers()
         // If player was selected, remove from selection

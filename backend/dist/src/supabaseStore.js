@@ -190,19 +190,47 @@ class SupabasePersistentStore {
         return players;
     }
     async addPlayer(name) {
-        const data = await this.loadData();
-        if (data && !data.current_players.includes(name)) {
-            data.current_players.push(name);
-            await this.saveData({ current_players: data.current_players });
-            console.log(`➕ Player ${name} added. Total: ${data.current_players.length}`);
+        const supabase = await this.getSupabase();
+        const today = this.getTodayKey();
+        // Ensure today's row exists before attempting atomic append
+        await this.loadData();
+        // Single atomic UPDATE — no read-modify-write, immune to concurrent joins
+        const { error } = await supabase.rpc('add_player_atomic', {
+            p_date: today,
+            p_name: name
+        });
+        if (error) {
+            // RPC not yet deployed — fall back to read-modify-write with a warning
+            console.warn('⚠️  add_player_atomic RPC not found, using non-atomic fallback. Run the SQL migration.');
+            const data = await this.loadData();
+            if (data && !data.current_players.includes(name)) {
+                data.current_players.push(name);
+                await this.saveData({ current_players: data.current_players });
+            }
+        }
+        else {
+            console.log(`➕ Player ${name} added atomically`);
         }
     }
     async removePlayer(name) {
-        const data = await this.loadData();
-        if (data) {
-            data.current_players = data.current_players.filter(p => p !== name);
-            await this.saveData({ current_players: data.current_players });
-            console.log(`➖ Player ${name} removed. Total: ${data.current_players.length}`);
+        const supabase = await this.getSupabase();
+        const today = this.getTodayKey();
+        // Single atomic UPDATE — no read-modify-write
+        const { error } = await supabase.rpc('remove_player_atomic', {
+            p_date: today,
+            p_name: name
+        });
+        if (error) {
+            // RPC not yet deployed — fall back to read-modify-write with a warning
+            console.warn('⚠️  remove_player_atomic RPC not found, using non-atomic fallback. Run the SQL migration.');
+            const data = await this.loadData();
+            if (data) {
+                data.current_players = data.current_players.filter(p => p !== name);
+                await this.saveData({ current_players: data.current_players });
+            }
+        }
+        else {
+            console.log(`➖ Player ${name} removed atomically`);
         }
     }
     async clearPlayers() {
