@@ -118,7 +118,7 @@ exports.playersDB = [
         rating: 4,
     },
     {
-        name: 'Jai',
+        name: 'Jay',
         firstPreferredPosition: 'goalkeeper',
         secondPreferredPosition: 'defender',
         thirdPreferredPosition: 'midfielder',
