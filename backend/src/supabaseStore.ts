@@ -189,15 +189,25 @@ class SupabasePersistentStore {
       const supabase = await this.getSupabase();
       const today = this.getTodayKey();
       
-      const updateData = {
+      const updateData: any = {
         date: today,
         ...data,
         updated_at: new Date().toISOString()
       };
 
-      const { error } = await supabase
+      let { error } = await supabase
         .from('daily_data')
         .upsert(updateData, { onConflict: 'date' });
+      
+      // If player_tokens column doesn't exist, try saving without it
+      if (error && error.code === 'PGRST204' && error.message?.includes('player_tokens')) {
+        console.warn('⚠️ player_tokens column not found in database. Run migration: 002_add_player_tokens.sql');
+        delete updateData.player_tokens;
+        const result = await supabase
+          .from('daily_data')
+          .upsert(updateData, { onConflict: 'date' });
+        error = result.error;
+      }
       
       if (error) throw error;
       
