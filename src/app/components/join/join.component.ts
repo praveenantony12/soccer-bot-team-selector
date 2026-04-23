@@ -93,7 +93,9 @@ export class JoinComponent implements OnInit {
   loadCurrent() {
     if (this.currentLoading) return;
     this.currentLoading = true;
-    this.http.get<unknown>(`${this.BASE_URL}/api/current`).subscribe({
+    // Add cache-busting timestamp to prevent browser caching
+    const timestamp = new Date().getTime();
+    this.http.get<unknown>(`${this.BASE_URL}/api/current?_t=${timestamp}`).subscribe({
       next: (res) => {
         this.currentPlayers = this.normalizePlayers(res);
         this.currentLoading = false;
