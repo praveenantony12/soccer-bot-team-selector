@@ -25,19 +25,11 @@ export class JoinComponent implements OnInit {
   isAdmin = false;
   private adminKey = '';
 
-  // Token modal state
+  // Token modal state (shown after join)
   showTokenModal = false;
   removalToken = '';
   tokenCopied = false;
   modalConfirmed = false;
-
-  // Self-removal form state
-  showSelfRemoval = false;
-  removalName = '';
-  removalCode = '';
-  removalLoading = false;
-  removalError = '';
-  removalSuccess = '';
 
   constructor(private http: HttpClient, private cdr: ChangeDetectorRef) { }
 
@@ -191,6 +183,71 @@ export class JoinComponent implements OnInit {
     });
   }
 
+  // Unified removal handler - admin removes directly, others need token
+  onRemoveClick(name: string) {
+    if (this.isAdmin) {
+      // Admin can remove anyone directly
+      this.leave(name);
+    } else {
+      // Non-admin needs to provide removal token
+      this.showRemovalTokenModal(name);
+    }
+  }
+
+  // Removal Token Modal (for self-removal via chip X button)
+  showRemovalModal = false;
+  removalModalPlayer = '';
+  removalModalToken = '';
+  removalModalError = '';
+  removalModalLoading = false;
+
+  showRemovalTokenModal(playerName: string) {
+    this.removalModalPlayer = playerName;
+    this.removalModalToken = '';
+    this.removalModalError = '';
+    this.removalModalLoading = false;
+    this.showRemovalModal = true;
+    this.cdr.detectChanges();
+  }
+
+  closeRemovalTokenModal() {
+    this.showRemovalModal = false;
+    this.removalModalPlayer = '';
+    this.removalModalToken = '';
+    this.removalModalError = '';
+    this.cdr.detectChanges();
+  }
+
+  submitRemovalToken() {
+    if (!this.removalModalToken) {
+      this.removalModalError = 'Please enter your removal code.';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.removalModalLoading = true;
+    this.removalModalError = '';
+
+    this.http.post<{ success: boolean; message?: string }>(`${this.BASE_URL}/api/remove-self`, {
+      name: this.removalModalPlayer,
+      token: this.removalModalToken.toUpperCase()
+    }).subscribe({
+      next: (res) => {
+        this.removalModalLoading = false;
+        this.showRemovalModal = false;
+        // If player was selected, remove from selection
+        this.selected.delete(this.removalModalPlayer);
+        this.forceLoadCurrent();
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.removalModalLoading = false;
+        this.removalModalError = err.error?.error || 'Invalid removal code. Please try again.';
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
   // Token Modal Methods
   copyToken() {
     if (this.removalToken) {
@@ -239,49 +296,4 @@ export class JoinComponent implements OnInit {
     }
   }
 
-  // Self-Removal Methods
-  toggleSelfRemoval() {
-    this.showSelfRemoval = !this.showSelfRemoval;
-    this.removalError = '';
-    this.removalSuccess = '';
-    this.cdr.detectChanges();
-  }
-
-  submitSelfRemoval() {
-    if (!this.removalName || !this.removalCode) {
-      this.removalError = 'Please enter both your name and removal code.';
-      this.cdr.detectChanges();
-      return;
-    }
-
-    this.removalLoading = true;
-    this.removalError = '';
-    this.removalSuccess = '';
-
-    this.http.post<{ success: boolean; message?: string }>(`${this.BASE_URL}/api/remove-self`, {
-      name: this.removalName,
-      token: this.removalCode.toUpperCase() // Normalize to uppercase
-    }).subscribe({
-      next: (res) => {
-        this.removalLoading = false;
-        this.removalSuccess = res.message || 'You have been removed from the game.';
-        this.removalName = '';
-        this.removalCode = '';
-        this.loadCurrent();
-        this.cdr.detectChanges();
-
-        // Hide form after 3 seconds
-        setTimeout(() => {
-          this.showSelfRemoval = false;
-          this.removalSuccess = '';
-          this.cdr.detectChanges();
-        }, 3000);
-      },
-      error: (err) => {
-        this.removalLoading = false;
-        this.removalError = err.error?.error || 'Failed to remove. Please check your code or contact an admin.';
-        this.cdr.detectChanges();
-      }
-    });
-  }
 }

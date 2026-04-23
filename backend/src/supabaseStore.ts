@@ -230,10 +230,6 @@ class SupabasePersistentStore {
   }
 
   async getPlayers(): Promise<string[]> {
-    // Track caller to identify what's triggering this every 5 seconds
-    const stack = new Error().stack?.split('\n')[3]?.trim();
-    console.log('🔍 getPlayers called from:', stack || 'unknown');
-    
     const data = await this.loadData();
     let players = data?.current_players || [];
     

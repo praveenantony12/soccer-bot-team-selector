@@ -89,9 +89,8 @@
         <span class="chip-avatar">{{ p.charAt(0).toUpperCase() }}</span>
         {{ p | titlecase }}
         <button
-          *ngIf="isAdmin"
           class="chip-leave-btn"
-          (click)="leave(p)"
+          (click)="onRemoveClick(p)"
           title="Remove player"
         >
           ✕
@@ -104,51 +103,6 @@
     </div>
   </div>
 
-  <!-- Self-Removal Section -->
-  <div class="section self-removal-section">
-    <button class="self-removal-toggle" (click)="toggleSelfRemoval()">
-      <span *ngIf="!showSelfRemoval">Remove Myself</span>
-      <span *ngIf="showSelfRemoval">Cancel</span>
-    </button>
-
-    <div *ngIf="showSelfRemoval" class="self-removal-form">
-      <p class="removal-help">Enter your name and removal code to remove yourself from the game.</p>
-
-      <div class="removal-input-group">
-        <label>Your Name</label>
-        <select [(ngModel)]="removalName" class="removal-input">
-          <option value="">Select your name</option>
-          <option *ngFor="let player of currentPlayers" [value]="player">{{ player | titlecase }}</option>
-        </select>
-      </div>
-
-      <div class="removal-input-group">
-        <label>Removal Code</label>
-        <input
-          type="text"
-          [(ngModel)]="removalCode"
-          placeholder="e.g., A3F9K2M8"
-          class="removal-input"
-          maxlength="8"
-        >
-      </div>
-
-      <div *ngIf="removalError" class="removal-error">{{ removalError }}</div>
-      <div *ngIf="removalSuccess" class="removal-success">{{ removalSuccess }}</div>
-
-      <button
-        class="removal-submit-btn"
-        (click)="submitSelfRemoval()"
-        [disabled]="removalLoading"
-      >
-        <span *ngIf="!removalLoading">Remove Me</span>
-        <span *ngIf="removalLoading" class="btn-loading">
-          <div class="btn-loader"></div>
-          Processing...
-        </span>
-      </button>
-    </div>
-  </div>
 </div>
 
 <!-- Token Modal - Shown after successful single-player join -->
@@ -193,6 +147,54 @@
         [disabled]="!modalConfirmed"
       >
         Continue
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Removal Token Input Modal - Shown when clicking X on a player chip -->
+<div *ngIf="showRemovalModal" class="token-modal-overlay" (click)="closeRemovalTokenModal()">
+  <div class="token-modal" (click)="$event.stopPropagation()">
+    <div class="token-modal-header">
+      <h3>Remove {{ removalModalPlayer | titlecase }}</h3>
+    </div>
+
+    <div class="token-modal-content">
+      <p class="token-instruction">Enter your removal code to remove this player:</p>
+
+      <div class="removal-input-group" style="margin-bottom: 1rem;">
+        <input
+          type="text"
+          [(ngModel)]="removalModalToken"
+          placeholder="e.g., A3F9K2M8"
+          class="removal-input"
+          maxlength="8"
+          style="text-align: center; font-family: monospace; font-size: 1.5rem; letter-spacing: 2px;"
+        >
+      </div>
+
+      <div *ngIf="removalModalError" class="removal-error" style="margin-bottom: 1rem;">{{ removalModalError }}</div>
+    </div>
+
+    <div class="token-modal-footer">
+      <button
+        class="token-copy-btn"
+        (click)="closeRemovalTokenModal()"
+        style="background: rgba(255,255,255,0.1);"
+      >
+        Cancel
+      </button>
+
+      <button
+        class="token-close-btn"
+        (click)="submitRemovalToken()"
+        [disabled]="removalModalLoading || !removalModalToken"
+      >
+        <span *ngIf="!removalModalLoading">Remove</span>
+        <span *ngIf="removalModalLoading" class="btn-loading">
+          <div class="btn-loader"></div>
+          Checking...
+        </span>
       </button>
     </div>
   </div>
