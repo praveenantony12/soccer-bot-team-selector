@@ -21,6 +21,7 @@ class SupabasePersistentStore {
   private static instance: SupabasePersistentStore;
   private supabase: SupabaseClient | null = null;
   private initialized: boolean = false;
+  private firstLoadComplete: boolean = false;
 
   static getInstance(): SupabasePersistentStore {
     if (!SupabasePersistentStore.instance) {
@@ -98,7 +99,11 @@ class SupabasePersistentStore {
       }
       
       if (data) {
-        console.log('📁 Loaded persistent data from Supabase');
+        // Only log on first successful load to reduce noise
+        if (!this.firstLoadComplete) {
+          console.log('📁 Loaded persistent data from Supabase');
+          this.firstLoadComplete = true;
+        }
         // Convert Supabase snake_case to camelCase for consistency
         // Handle JSON strings for array fields
         let currentPlayers = data.current_players || [];

@@ -108,6 +108,12 @@ export class JoinComponent implements OnInit {
     });
   }
 
+  // Force reload that bypasses the loading guard - used after join/leave
+  forceLoadCurrent() {
+    this.currentLoading = false; // Reset loading flag
+    this.loadCurrent();
+  }
+
   updateAvailablePlayers() {
     // Filter out current players from available list
     const available = this.players.filter(player => 
@@ -146,7 +152,8 @@ export class JoinComponent implements OnInit {
         this.loading = false;
         this.success = true;
         this.selected.clear();
-        this.loadCurrent();
+        // Small delay to ensure backend has processed the join
+        setTimeout(() => this.forceLoadCurrent(), 300);
 
         // Show token modal for single-player joins (when token is returned)
         if (res.token && names.length === 1) {
@@ -175,10 +182,10 @@ export class JoinComponent implements OnInit {
       headers: { 'x-admin-key': this.adminKey }
     }).subscribe({
       next: () => {
-        this.loadCurrent(); // This will call updateAvailablePlayers()
         // If player was selected, remove from selection
         this.selected.delete(name);
-        this.cdr.detectChanges();
+        // Force reload with delay to ensure backend has processed
+        setTimeout(() => this.forceLoadCurrent(), 300);
       },
       error: () => {}
     });
