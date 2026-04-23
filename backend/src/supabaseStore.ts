@@ -124,9 +124,20 @@ class SupabasePersistentStore {
           }
         }
         
+        // Parse player_tokens (stored as JSONB in Supabase)
+        let playerTokens = data.player_tokens || {};
+        if (typeof playerTokens === 'string') {
+          try {
+            playerTokens = JSON.parse(playerTokens);
+          } catch (e) {
+            playerTokens = {};
+          }
+        }
+        
         return {
           date: data.date,
           current_players: Array.isArray(currentPlayers) ? currentPlayers : [],
+          player_tokens: playerTokens || {},
           last_reset: data.last_reset || '',
           formed_teams: formedTeams,
           daily_status: data.daily_status || 'collecting',
