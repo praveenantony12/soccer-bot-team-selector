@@ -130,3 +130,310 @@
   .section { padding: 0.75rem; }
 }
 
+/* Self-Removal Section */
+.self-removal-section {
+  background: rgba(214, 48, 49, 0.1);
+  border: 1px solid rgba(214, 48, 49, 0.2);
+  padding: 1rem;
+}
+
+.self-removal-toggle {
+  width: 100%;
+  padding: 14px;
+  background: rgba(214, 48, 49, 0.2);
+  border: 2px solid rgba(255, 118, 117, 0.5);
+  border-radius: 10px;
+  color: #ff9f9f;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.self-removal-toggle:hover {
+  background: rgba(214, 48, 49, 0.35);
+  border-color: rgba(255, 118, 117, 0.8);
+  color: #ffffff;
+}
+
+.self-removal-form {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(214, 48, 49, 0.2);
+  animation: slideInUp 0.3s ease-out;
+}
+
+.removal-help {
+  text-align: center;
+  font-size: 0.85rem;
+  opacity: 0.8;
+  margin: 0 0 1rem 0;
+}
+
+.removal-input-group {
+  margin-bottom: 1rem;
+}
+
+.removal-input-group label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.removal-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  font-size: 1rem;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+}
+
+.removal-input:focus {
+  outline: none;
+  border-color: rgba(214, 48, 49, 0.5);
+  background: rgba(214, 48, 49, 0.05);
+}
+
+.removal-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.removal-error {
+  background: rgba(214, 48, 49, 0.2);
+  color: #ff7675;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.removal-success {
+  background: rgba(0, 184, 148, 0.2);
+  color: #00b894;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.removal-submit-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #d63031, #e74c3c);
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(214, 48, 49, 0.3);
+}
+
+.removal-submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(214, 48, 49, 0.4);
+}
+
+.removal-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Token Modal */
+.token-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.token-modal {
+  background: linear-gradient(145deg, rgba(26, 26, 46, 0.95), rgba(22, 33, 62, 0.95));
+  border: 1px solid rgba(108, 92, 231, 0.3);
+  border-radius: 24px;
+  padding: 2rem;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+  animation: slideInUp 0.4s ease-out;
+}
+
+.token-modal-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.token-modal-icon {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+}
+
+.token-modal-header h3 {
+  font-size: 1.5rem;
+  margin: 0;
+  color: white;
+}
+
+.token-modal-content {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.token-instruction {
+  font-size: 1rem;
+  opacity: 0.9;
+  margin: 0 0 1rem 0;
+  color: #ffffff;
+}
+
+.token-display {
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(108, 92, 231, 0.5);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.token-code {
+  font-family: 'Courier New', monospace;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: #fff;
+  text-shadow: 0 0 20px rgba(108, 92, 231, 0.5);
+  user-select: all;
+}
+
+.token-copy-btn {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid rgba(108, 92, 231, 0.5);
+  border-radius: 10px;
+  background: rgba(108, 92, 231, 0.2);
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 1rem;
+}
+
+.token-copy-btn:hover {
+  background: rgba(108, 92, 231, 0.3);
+  border-color: rgba(108, 92, 231, 0.7);
+}
+
+.token-copy-btn.copied {
+  background: rgba(0, 184, 148, 0.3);
+  border-color: rgba(0, 184, 148, 0.7);
+  color: #00b894;
+}
+
+.token-warning {
+  font-size: 0.85rem;
+  opacity: 0.9;
+  margin: 0;
+  line-height: 1.5;
+  color: #ffffff;
+}
+
+.token-modal-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.token-confirm-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: #ffffff;
+}
+
+.token-confirm-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent-purple);
+  cursor: pointer;
+}
+
+.token-close-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);
+}
+
+.token-close-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(108, 92, 231, 0.4);
+}
+
+.token-close-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Mobile adjustments for modal */
+@media (max-width: 480px) {
+  .token-modal {
+    padding: 1.5rem;
+    width: 95%;
+  }
+
+  .token-modal-icon {
+    font-size: 2.5rem;
+  }
+
+  .token-modal-header h3 {
+    font-size: 1.3rem;
+  }
+
+  .token-code {
+    font-size: 1.5rem;
+    letter-spacing: 3px;
+  }
+
+  .token-display {
+    padding: 1rem;
+  }
+}

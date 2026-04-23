@@ -1,8 +1,14 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
+interface PlayerToken {
+  token: string;
+  createdAt: string;
+}
+
 interface DailyData {
   date: string; // Format: YYYY-MM-DD
   current_players: string[];
+  player_tokens?: { [name: string]: PlayerToken };
   last_reset: string;
   formed_teams: any;
   daily_status: 'collecting' | 'formed' | 'insufficient';
@@ -138,6 +144,7 @@ class SupabasePersistentStore {
     const newData: Partial<DailyData> = {
       date: today,
       current_players: [],
+      player_tokens: {},
       last_reset: today,
       formed_teams: null,
       daily_status: 'collecting',
@@ -262,10 +269,19 @@ class SupabasePersistentStore {
       const data = await this.loadData();
       if (data) {
         data.current_players = data.current_players.filter(p => p !== name);
-        await this.saveData({ current_players: data.current_players });
+        // Also remove token
+        if (data.player_tokens) {
+          delete data.player_tokens[name];
+        }
+        await this.saveData({ 
+          current_players: data.current_players,
+          player_tokens: data.player_tokens 
+        });
       }
     } else {
       console.log(`➖ Player ${name} removed atomically`);
+      // Also remove token via separate update
+      await this.removePlayerToken(name);
     }
   }
 
@@ -273,8 +289,13 @@ class SupabasePersistentStore {
     const data = await this.loadData();
     if (data) {
       data.current_players = [];
+      data.player_tokens = {};
       data.last_reset = this.getTodayKey();
-      await this.saveData({ current_players: data.current_players, last_reset: data.last_reset });
+      await this.saveData({ 
+        current_players: data.current_players, 
+        player_tokens: data.player_tokens,
+        last_reset: data.last_reset 
+      });
       console.log('🗑️ Players cleared');
     }
   }
@@ -340,11 +361,45 @@ class SupabasePersistentStore {
     return data?.last_processed_date === this.getTodayKey();
   }
 
+  // Token management methods
+  async setPlayerToken(name: string, token: string): Promise<void> {
+    const data = await this.loadData();
+    if (data) {
+      data.player_tokens = data.player_tokens || {};
+      data.player_tokens[name] = {
+        token,
+        createdAt: new Date().toISOString()
+      };
+      await this.saveData({ player_tokens: data.player_tokens });
+      console.log(`🔑 Token set for player ${name}`);
+    }
+  }
+
+  async getPlayerToken(name: string): Promise<PlayerToken | undefined> {
+    const data = await this.loadData();
+    return data?.player_tokens?.[name];
+  }
+
+  async validatePlayerToken(name: string, token: string): Promise<boolean> {
+    const data = await this.loadData();
+    const playerToken = data?.player_tokens?.[name];
+    return playerToken !== undefined && playerToken.token === token;
+  }
+
+  async removePlayerToken(name: string): Promise<void> {
+    const data = await this.loadData();
+    if (data && data.player_tokens) {
+      delete data.player_tokens[name];
+      await this.saveData({ player_tokens: data.player_tokens });
+    }
+  }
+
   async resetForNewDay(): Promise<void> {
     const today = this.getTodayKey();
     const newData: Partial<DailyData> = {
       date: today,
       current_players: [],
+      player_tokens: {},
       last_reset: today,
       formed_teams: null,
       daily_status: 'collecting',

@@ -7,6 +7,7 @@ const DATA_FILE = (0, path_1.join)(process.cwd(), 'players.json');
 class PersistentStore {
     constructor() {
         this.currentPlayers = [];
+        this.playerTokens = {};
         this.lastReset = '';
         this.formedTeams = null;
         this.dailyStatus = 'collecting';
@@ -26,6 +27,7 @@ class PersistentStore {
                 const data = (0, fs_1.readFileSync)(DATA_FILE, 'utf8');
                 const parsed = JSON.parse(data);
                 this.currentPlayers = parsed.currentPlayers || [];
+                this.playerTokens = parsed.playerTokens || {};
                 this.lastReset = parsed.lastReset || '';
                 this.formedTeams = parsed.formedTeams || null;
                 this.dailyStatus = parsed.dailyStatus || 'collecting';
@@ -42,11 +44,13 @@ class PersistentStore {
         // Backup: Load from environment variables (for Render's ephemeral storage)
         try {
             const envPlayers = process.env.PERSISTENT_PLAYERS;
+            const envTokens = process.env.PERSISTENT_PLAYER_TOKENS;
             const envLastReset = process.env.PERSISTENT_LAST_RESET;
             const envStatus = process.env.PERSISTENT_STATUS;
             const envTeams = process.env.PERSISTENT_TEAMS;
             if (envPlayers && this.currentPlayers.length === 0) {
                 this.currentPlayers = JSON.parse(envPlayers);
+                this.playerTokens = envTokens ? JSON.parse(envTokens) : {};
                 this.lastReset = envLastReset || this.getTodayKey();
                 this.dailyStatus = envStatus || 'collecting';
                 this.formedTeams = envTeams ? JSON.parse(envTeams) : null;
@@ -55,13 +59,14 @@ class PersistentStore {
             }
         }
         catch (error) {
-            console.error('� Error loading env backup:', error);
+            console.error(' Error loading env backup:', error);
         }
         // Check if it's a new day (reset at midnight)
         const today = this.getTodayKey();
         if (this.lastReset !== today) {
             console.log('🔄 New day detected, resetting players and teams');
             this.currentPlayers = [];
+            this.playerTokens = {};
             this.formedTeams = null;
             this.dailyStatus = 'collecting';
             this.lastProcessedDate = '';
@@ -73,6 +78,7 @@ class PersistentStore {
         try {
             const data = {
                 currentPlayers: this.currentPlayers,
+                playerTokens: this.playerTokens,
                 lastReset: this.lastReset,
                 formedTeams: this.formedTeams,
                 dailyStatus: this.dailyStatus,
@@ -85,6 +91,7 @@ class PersistentStore {
             // Note: This only works if the environment allows setting env vars at runtime
             try {
                 process.env.PERSISTENT_PLAYERS = JSON.stringify(this.currentPlayers);
+                process.env.PERSISTENT_PLAYER_TOKENS = JSON.stringify(this.playerTokens);
                 process.env.PERSISTENT_LAST_RESET = this.lastReset;
                 process.env.PERSISTENT_STATUS = this.dailyStatus;
                 process.env.PERSISTENT_TEAMS = JSON.stringify(this.formedTeams);
@@ -108,14 +115,36 @@ class PersistentStore {
     }
     removePlayer(name) {
         this.currentPlayers = this.currentPlayers.filter(p => p !== name);
+        delete this.playerTokens[name];
         this.saveData();
         console.log(`➖ Player ${name} removed. Total: ${this.currentPlayers.length}`);
+    }
+    // Token management methods
+    setPlayerToken(name, token) {
+        this.playerTokens[name] = {
+            token,
+            createdAt: new Date().toISOString()
+        };
+        this.saveData();
+        console.log(`🔑 Token set for player ${name}`);
+    }
+    getPlayerToken(name) {
+        return this.playerTokens[name];
+    }
+    validatePlayerToken(name, token) {
+        const playerToken = this.playerTokens[name];
+        return playerToken !== undefined && playerToken.token === token;
+    }
+    removePlayerToken(name) {
+        delete this.playerTokens[name];
+        this.saveData();
     }
     getPlayers() {
         return [...this.currentPlayers];
     }
     clearPlayers() {
         this.currentPlayers = [];
+        this.playerTokens = {};
         this.lastReset = this.getTodayKey();
         this.saveData();
         console.log('🗑️ Players cleared');
@@ -157,6 +186,7 @@ class PersistentStore {
     }
     resetForNewDay() {
         this.currentPlayers = [];
+        this.playerTokens = {};
         this.formedTeams = null;
         this.dailyStatus = 'collecting';
         this.lastProcessedDate = '';

@@ -25,6 +25,20 @@ export class JoinComponent implements OnInit {
   isAdmin = false;
   private adminKey = '';
 
+  // Token modal state
+  showTokenModal = false;
+  removalToken = '';
+  tokenCopied = false;
+  modalConfirmed = false;
+
+  // Self-removal form state
+  showSelfRemoval = false;
+  removalName = '';
+  removalCode = '';
+  removalLoading = false;
+  removalError = '';
+  removalSuccess = '';
+
   constructor(private http: HttpClient, private cdr: ChangeDetectorRef) { }
 
   private normalizePlayers(input: unknown): string[] {
@@ -125,18 +139,31 @@ export class JoinComponent implements OnInit {
     this.success = false;
 
     const names = Array.from(this.selected);
-    this.http.post(`${this.BASE_URL}/api/join`, { names }).subscribe({
-      next: () => {
-      this.loading = false;
-      this.success = true;
-      this.selected.clear();
-      this.loadCurrent();
-      setTimeout(() => {
-        this.success = false;
-      }, 3000);
+    this.http.post<{ success: boolean; added: number; token?: string }>(`${this.BASE_URL}/api/join`, { names }).subscribe({
+      next: (res) => {
+        this.loading = false;
+        this.success = true;
+        this.selected.clear();
+        this.loadCurrent();
+
+        // Show token modal for single-player joins (when token is returned)
+        if (res.token && names.length === 1) {
+          this.removalToken = res.token;
+          this.showTokenModal = true;
+          this.tokenCopied = false;
+          this.modalConfirmed = false;
+        } else {
+          // Multi-player join - auto-hide success after 3 seconds
+          setTimeout(() => {
+            this.success = false;
+          }, 3000);
+        }
+
+        this.cdr.detectChanges();
       },
       error: () => {
         this.loading = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -152,6 +179,100 @@ export class JoinComponent implements OnInit {
         this.cdr.detectChanges();
       },
       error: () => {}
+    });
+  }
+
+  // Token Modal Methods
+  copyToken() {
+    if (this.removalToken) {
+      navigator.clipboard.writeText(this.removalToken).then(() => {
+        this.tokenCopied = true;
+        this.cdr.detectChanges();
+
+        // Reset copied status after 2 seconds
+        setTimeout(() => {
+          this.tokenCopied = false;
+          this.cdr.detectChanges();
+        }, 2000);
+      }).catch(() => {
+        // Fallback for older browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = this.removalToken;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+
+        this.tokenCopied = true;
+        this.cdr.detectChanges();
+
+        setTimeout(() => {
+          this.tokenCopied = false;
+          this.cdr.detectChanges();
+        }, 2000);
+      });
+    }
+  }
+
+  confirmModal() {
+    this.modalConfirmed = true;
+    this.showTokenModal = false;
+    this.success = false;
+    this.cdr.detectChanges();
+  }
+
+  closeModal() {
+    // Only allow closing if confirmed
+    if (this.modalConfirmed) {
+      this.showTokenModal = false;
+      this.success = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  // Self-Removal Methods
+  toggleSelfRemoval() {
+    this.showSelfRemoval = !this.showSelfRemoval;
+    this.removalError = '';
+    this.removalSuccess = '';
+    this.cdr.detectChanges();
+  }
+
+  submitSelfRemoval() {
+    if (!this.removalName || !this.removalCode) {
+      this.removalError = 'Please enter both your name and removal code.';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.removalLoading = true;
+    this.removalError = '';
+    this.removalSuccess = '';
+
+    this.http.post<{ success: boolean; message?: string }>(`${this.BASE_URL}/api/remove-self`, {
+      name: this.removalName,
+      token: this.removalCode.toUpperCase() // Normalize to uppercase
+    }).subscribe({
+      next: (res) => {
+        this.removalLoading = false;
+        this.removalSuccess = res.message || 'You have been removed from the game.';
+        this.removalName = '';
+        this.removalCode = '';
+        this.loadCurrent();
+        this.cdr.detectChanges();
+
+        // Hide form after 3 seconds
+        setTimeout(() => {
+          this.showSelfRemoval = false;
+          this.removalSuccess = '';
+          this.cdr.detectChanges();
+        }, 3000);
+      },
+      error: (err) => {
+        this.removalLoading = false;
+        this.removalError = err.error?.error || 'Failed to remove. Please check your code or contact an admin.';
+        this.cdr.detectChanges();
+      }
     });
   }
 }

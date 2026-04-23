@@ -3,8 +3,14 @@ import { join } from 'path';
 
 const DATA_FILE = join(process.cwd(), 'players.json');
 
+interface PlayerToken {
+  token: string;
+  createdAt: string;
+}
+
 interface PlayerData {
   currentPlayers: string[];
+  playerTokens?: { [name: string]: PlayerToken };
   lastReset: string;
   formedTeams?: any;
   dailyStatus?: 'collecting' | 'formed' | 'insufficient';
@@ -14,6 +20,7 @@ interface PlayerData {
 export class PersistentStore {
   private static instance: PersistentStore;
   private currentPlayers: string[] = [];
+  private playerTokens: { [name: string]: PlayerToken } = {};
   private lastReset: string = '';
   private formedTeams: any = null;
   private dailyStatus: 'collecting' | 'formed' | 'insufficient' = 'collecting';
@@ -37,6 +44,7 @@ export class PersistentStore {
         const data = readFileSync(DATA_FILE, 'utf8');
         const parsed: PlayerData = JSON.parse(data);
         this.currentPlayers = parsed.currentPlayers || [];
+        this.playerTokens = parsed.playerTokens || {};
         this.lastReset = parsed.lastReset || '';
         this.formedTeams = parsed.formedTeams || null;
         this.dailyStatus = parsed.dailyStatus || 'collecting';
@@ -52,12 +60,14 @@ export class PersistentStore {
     // Backup: Load from environment variables (for Render's ephemeral storage)
     try {
       const envPlayers = process.env.PERSISTENT_PLAYERS;
+      const envTokens = process.env.PERSISTENT_PLAYER_TOKENS;
       const envLastReset = process.env.PERSISTENT_LAST_RESET;
       const envStatus = process.env.PERSISTENT_STATUS;
       const envTeams = process.env.PERSISTENT_TEAMS;
 
       if (envPlayers && this.currentPlayers.length === 0) {
         this.currentPlayers = JSON.parse(envPlayers);
+        this.playerTokens = envTokens ? JSON.parse(envTokens) : {};
         this.lastReset = envLastReset || this.getTodayKey();
         this.dailyStatus = (envStatus as any) || 'collecting';
         this.formedTeams = envTeams ? JSON.parse(envTeams) : null;
@@ -65,7 +75,7 @@ export class PersistentStore {
         console.log('🔄 Loaded persistent data from environment variables');
       }
     } catch (error) {
-      console.error('� Error loading env backup:', error);
+      console.error(' Error loading env backup:', error);
     }
     
     // Check if it's a new day (reset at midnight)
@@ -73,6 +83,7 @@ export class PersistentStore {
     if (this.lastReset !== today) {
       console.log('🔄 New day detected, resetting players and teams');
       this.currentPlayers = [];
+      this.playerTokens = {};
       this.formedTeams = null;
       this.dailyStatus = 'collecting';
       this.lastProcessedDate = '';
@@ -85,6 +96,7 @@ export class PersistentStore {
     try {
       const data: PlayerData = {
         currentPlayers: this.currentPlayers,
+        playerTokens: this.playerTokens,
         lastReset: this.lastReset,
         formedTeams: this.formedTeams,
         dailyStatus: this.dailyStatus,
@@ -99,6 +111,7 @@ export class PersistentStore {
       // Note: This only works if the environment allows setting env vars at runtime
       try {
         process.env.PERSISTENT_PLAYERS = JSON.stringify(this.currentPlayers);
+        process.env.PERSISTENT_PLAYER_TOKENS = JSON.stringify(this.playerTokens);
         process.env.PERSISTENT_LAST_RESET = this.lastReset;
         process.env.PERSISTENT_STATUS = this.dailyStatus;
         process.env.PERSISTENT_TEAMS = JSON.stringify(this.formedTeams);
@@ -122,8 +135,33 @@ export class PersistentStore {
 
   removePlayer(name: string): void {
     this.currentPlayers = this.currentPlayers.filter(p => p !== name);
+    delete this.playerTokens[name];
     this.saveData();
     console.log(`➖ Player ${name} removed. Total: ${this.currentPlayers.length}`);
+  }
+
+  // Token management methods
+  setPlayerToken(name: string, token: string): void {
+    this.playerTokens[name] = {
+      token,
+      createdAt: new Date().toISOString()
+    };
+    this.saveData();
+    console.log(`🔑 Token set for player ${name}`);
+  }
+
+  getPlayerToken(name: string): PlayerToken | undefined {
+    return this.playerTokens[name];
+  }
+
+  validatePlayerToken(name: string, token: string): boolean {
+    const playerToken = this.playerTokens[name];
+    return playerToken !== undefined && playerToken.token === token;
+  }
+
+  removePlayerToken(name: string): void {
+    delete this.playerTokens[name];
+    this.saveData();
   }
 
   getPlayers(): string[] {
@@ -132,6 +170,7 @@ export class PersistentStore {
 
   clearPlayers(): void {
     this.currentPlayers = [];
+    this.playerTokens = {};
     this.lastReset = this.getTodayKey();
     this.saveData();
     console.log('🗑️ Players cleared');
@@ -183,6 +222,7 @@ export class PersistentStore {
 
   resetForNewDay(): void {
     this.currentPlayers = [];
+    this.playerTokens = {};
     this.formedTeams = null;
     this.dailyStatus = 'collecting';
     this.lastProcessedDate = '';

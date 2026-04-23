@@ -46,6 +46,16 @@ function runMutation(task) {
   return next;
 }
 
+// Generate a random 8-character alphanumeric token for player self-removal
+function generateRemovalToken() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let token = '';
+  for (let i = 0; i < 8; i++) {
+    token += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return token;
+}
+
 // Determined once at startup — avoids re-checking env vars on every request
 let activeStore = persistentStore;
 
@@ -342,7 +352,18 @@ app.post("/api/join", async (req, res) => {
   res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
-  res.json({ success: true, added: requestedNames.length });
+  
+  // Generate removal token only for single-player joins
+  // Multi-player joins (captain adding others) skip token generation - admin handles removal
+  let token = null;
+  if (requestedNames.length === 1) {
+    token = generateRemovalToken();
+    const playerName = requestedNames[0];
+    await Promise.resolve(store.setPlayerToken(playerName, token));
+    console.log(`🔑 Generated removal token for ${playerName}: ${token}`);
+  }
+  
+  res.json({ success: true, added: requestedNames.length, token });
 });
 
 app.post("/api/leave", async (req, res) => {
@@ -363,6 +384,41 @@ app.post("/api/leave", async (req, res) => {
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
   res.json({ success: true });
+});
+
+// Self-removal endpoint - allows players to remove themselves using a token
+app.post("/api/remove-self", async (req, res) => {
+  await ensureDailyReset();
+  const store = getPersistentStore();
+  const { name, token } = req.body;
+
+  if (!name || !token) {
+    return res.status(400).json({ error: 'Player name and removal code are required.' });
+  }
+
+  // Validate the token
+  const isValid = await Promise.resolve(store.validatePlayerToken(name, token));
+  if (!isValid) {
+    return res.status(403).json({ error: 'Invalid removal code. Please check your code or contact an admin for assistance.' });
+  }
+
+  // Check if player is actually in the list
+  const currentPlayers = await Promise.resolve(store.getPlayers());
+  if (!currentPlayers.includes(name)) {
+    return res.status(404).json({ error: 'Player not found in current game.' });
+  }
+
+  // Remove the player and their token
+  await runMutation(async () => {
+    await Promise.resolve(store.removePlayer(name));
+  });
+
+  console.log(`🗑️ Player ${name} removed themselves using removal token`);
+
+  res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  res.json({ success: true, message: 'You have been removed from the game.' });
 });
 
 app.get("/api/teams", async (req, res) => {
