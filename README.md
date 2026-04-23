@@ -1,6 +1,6 @@
 # ⚽ Soccer Team Selector
 
-A complete soccer team management system with automated WhatsApp notifications, skill-based team balancing, and a beautiful modern frontend.
+A complete soccer team management system with automated WhatsApp notifications, skill-based team balancing, and a beautiful modern UI.
 
 ## 🚀 Features
 
