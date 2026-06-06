@@ -279,6 +279,13 @@ exports.playersDB = [
         rating: 17,
     },
     {
+        name: 'Rahul',
+        firstPreferredPosition: 'defender',
+        secondPreferredPosition: 'midfielder',
+        thirdPreferredPosition: 'goalkeeper',
+        rating: 9,
+    },
+    {
         name: 'Rejul',
         firstPreferredPosition: 'defender',
         secondPreferredPosition: 'forward',
