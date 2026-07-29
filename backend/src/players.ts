@@ -151,6 +151,13 @@ export const playersDB: Player[] = [
     rating: 13,
   },
   {
+    name: 'Julien',
+    firstPreferredPosition: 'defender',
+    secondPreferredPosition: 'goalkeeper',
+    thirdPreferredPosition: 'midfielder',
+    rating: 12,
+  },
+  {
     name: 'Jikku',
     firstPreferredPosition: 'forward',
     secondPreferredPosition: 'midfielder',
@@ -235,6 +242,13 @@ export const playersDB: Player[] = [
     rating: 16,
   },
   {
+    name: 'Naveen',
+    firstPreferredPosition: 'midfielder',
+    secondPreferredPosition: 'defender',
+    thirdPreferredPosition: 'goalkeeper',
+    rating: 14,
+  },
+  {
     name: 'Niju',
     firstPreferredPosition: 'defender',
     secondPreferredPosition: 'goalkeeper',
@@ -296,6 +310,13 @@ export const playersDB: Player[] = [
     secondPreferredPosition: 'midfielder',
     thirdPreferredPosition: 'goalkeeper',
     rating: 9,
+  },
+  {
+    name: 'Ryan',
+    firstPreferredPosition: 'midfielder',
+    secondPreferredPosition: 'forward',
+    thirdPreferredPosition: 'defender',
+    rating: 22,
   },
   {
     name: 'Rejul',
