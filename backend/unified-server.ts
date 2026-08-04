@@ -87,28 +87,42 @@ cron.schedule("* * * * *", async () => {
 
 // 🕖 Team generation - Every 2 minutes for testing
 cron.schedule("*/2 * * * *", async () => {
-  console.log("Generating teams...");
+  console.log("Checking team formation...");
 
   const names = persistentStore.getPlayers();
   console.log(`Current players: ${names.length}`);
 
-  if (names.length < 12) {
-    console.log(`❌ Not enough players (${names.length}). Skipping team generation.`);
-    
-    try {
-      await client.messages.create({
-        body: formatInsufficientPlayers(names.length),
-        from: process.env.TWILIO_NUMBER!,
-        to: GROUP_ID
-      });
-      console.log("✅ Insufficient players message sent");
-    } catch (error) {
-      console.error("❌ Failed to send insufficient players message:", error);
-    }
-    
+  // Early formation: form teams immediately if we have 28+ players
+  if (names.length >= 28) {
+    console.log(`🚀 Early team formation triggered with ${names.length} players`);
+    await formAndSendTeams(names);
     return;
   }
 
+  // Scheduled formation: only form teams at scheduled time if we have 12+ players
+  // For now, this runs every 2 minutes for testing - in production, this would be at a specific time
+  if (names.length >= 12) {
+    console.log(`⏰ Scheduled team formation with ${names.length} players`);
+    await formAndSendTeams(names);
+    return;
+  }
+
+  // Not enough players
+  console.log(`❌ Not enough players (${names.length}). Need at least 12.`);
+  
+  try {
+    await client.messages.create({
+      body: formatInsufficientPlayers(names.length),
+      from: process.env.TWILIO_NUMBER!,
+      to: GROUP_ID
+    });
+    console.log("✅ Insufficient players message sent");
+  } catch (error) {
+    console.error("❌ Failed to send insufficient players message:", error);
+  }
+});
+
+async function formAndSendTeams(names: string[]) {
   const players = names.map(name => {
     const player = getPlayerByName(name);
     if (!player) {
@@ -133,7 +147,7 @@ cron.schedule("*/2 * * * *", async () => {
   } catch (error) {
     console.error("❌ Failed to generate or send teams:", error);
   }
-});
+}
 
 app.listen(PORT, () => {
   console.log(`🚀 Unified Soccer Bot running on ${PORT}`);
