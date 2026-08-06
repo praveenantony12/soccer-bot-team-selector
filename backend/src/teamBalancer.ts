@@ -5,20 +5,22 @@ export interface Team {
   players: Player[];
   totalRating: number;
   avgRating: number;
+  captainName?: string;
 }
 
 export interface BalanceResult {
+  mode: 'two-team' | 'four-team';
+  teams: Team[];
   team1: Team;
   team2: Team;
+  team3?: Team;
+  team4?: Team;
   balance: number;
   quality: 'excellent' | 'good' | 'poor';
 }
 
 type Candidate = {
-  team1: Player[];
-  team2: Player[];
-  team1Rating: number;
-  team2Rating: number;
+  teams: Team[];
   ratingBalance: number;
   positionBalance: number;
 };
@@ -36,15 +38,31 @@ function getPreferredZone(p: Player): string {
   return p.firstPreferredPosition || p.position || 'player';
 }
 
-function computePositionBalance(team1: Player[], team2: Player[]): number {
-  const positions = new Set([...team1, ...team2].map(getPreferredZone));
+function computePositionBalance(teams: Team[]): number {
+  const positions = new Set(teams.flatMap(team => team.players.map(getPreferredZone)));
   let total = 0;
   for (const pos of positions) {
-    const t1 = team1.filter(p => getPreferredZone(p) === pos).length;
-    const t2 = team2.filter(p => getPreferredZone(p) === pos).length;
-    total += Math.abs(t1 - t2);
+    const counts = teams.map(team => team.players.filter(player => getPreferredZone(player) === pos).length);
+    const max = Math.max(...counts);
+    const min = Math.min(...counts);
+    total += max - min;
   }
   return total;
+}
+
+function sortPlayers(players: Player[]): Player[] {
+  return [...players].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function buildTeamSummary(name: string, players: Player[]): Team {
+  const sortedPlayers = sortPlayers(players);
+  const totalRating = sortedPlayers.reduce((sum, player) => sum + player.rating, 0);
+  return {
+    name,
+    players: sortedPlayers,
+    totalRating,
+    avgRating: sortedPlayers.length ? totalRating / sortedPlayers.length : 0
+  };
 }
 
 function buildPositionAwareCandidate(players: Player[]): Candidate {
@@ -93,28 +111,80 @@ function buildPositionAwareCandidate(players: Player[]): Candidate {
     if (!swapped) break;
   }
 
+  const teams = [
+    buildTeamSummary('Blue Team', team1),
+    buildTeamSummary('Red Team', team2)
+  ];
+
   return {
-    team1,
-    team2,
-    team1Rating: t1Rating,
-    team2Rating: t2Rating,
-    ratingBalance: Math.abs(t1Rating / team1.length - t2Rating / team2.length),
-    positionBalance: computePositionBalance(team1, team2)
+    teams,
+    ratingBalance: Math.abs((t1Rating / team1.length) - (t2Rating / team2.length)),
+    positionBalance: computePositionBalance(teams)
   };
 }
 
-export function balanceTeams(players: Player[]): BalanceResult {
-  if (players.length < 2) {
-    throw new Error('Need at least 2 players to form teams');
+function getTeamSizes(playerCount: number): number[] {
+  if (playerCount <= 27) {
+    const split = Math.floor(playerCount / 2);
+    return [split, playerCount - split];
   }
 
-  const attemptCount = Math.max(50, players.length * 5);
-  const candidates: Candidate[] = [];
+  const base = Math.floor(playerCount / 4);
+  const remainder = playerCount % 4;
+  return Array.from({ length: 4 }, (_, index) => base + (index < remainder ? 1 : 0));
+}
 
-  for (let attempt = 0; attempt < attemptCount; attempt++) {
-    candidates.push(buildPositionAwareCandidate(players));
+function buildFourTeamCandidate(players: Player[]): Candidate {
+  const sizes = getTeamSizes(players.length);
+  const teams = sizes.map(() => ({ players: [] as Player[], totalRating: 0, avgRating: 0 }));
+  const orderedPlayers = shuffleArray([...players]).sort((a, b) => b.rating - a.rating);
+
+  for (const player of orderedPlayers) {
+    let bestIndex = -1;
+    let bestScore = Number.POSITIVE_INFINITY;
+
+    for (let index = 0; index < teams.length; index++) {
+      const team = teams[index];
+      if (team.players.length >= sizes[index]) continue;
+
+      const projectedAvg = (team.totalRating + player.rating) / (team.players.length + 1);
+      const positionPenalty = team.players.filter(entry => getPreferredZone(entry) === getPreferredZone(player)).length * 0.35;
+      const sizePenalty = team.players.length / Math.max(1, sizes[index]);
+      const score = projectedAvg + positionPenalty + sizePenalty;
+
+      if (score < bestScore) {
+        bestScore = score;
+        bestIndex = index;
+      }
+    }
+
+    if (bestIndex === -1) {
+      bestIndex = teams.findIndex(team => team.players.length < sizes[teams.indexOf(team)]);
+    }
+
+    if (bestIndex >= 0) {
+      const team = teams[bestIndex];
+      team.players.push(player);
+      team.totalRating += player.rating;
+      team.avgRating = team.players.length ? team.totalRating / team.players.length : 0;
+    }
   }
 
+  const namedTeams = [
+    buildTeamSummary('Red Team A', teams[0].players),
+    buildTeamSummary('Red Team B', teams[1].players),
+    buildTeamSummary('Blue Team A', teams[2].players),
+    buildTeamSummary('Blue Team B', teams[3].players)
+  ];
+
+  return {
+    teams: namedTeams,
+    ratingBalance: Math.max(...namedTeams.map(team => team.avgRating)) - Math.min(...namedTeams.map(team => team.avgRating)),
+    positionBalance: computePositionBalance(namedTeams)
+  };
+}
+
+function chooseBestCandidate(candidates: Candidate[]): Candidate {
   candidates.sort((a, b) =>
     a.positionBalance !== b.positionBalance
       ? a.positionBalance - b.positionBalance
@@ -122,41 +192,87 @@ export function balanceTeams(players: Player[]): BalanceResult {
   );
 
   const bestPositionBalance = candidates[0].positionBalance;
-  const positionFair = candidates.filter(c => c.positionBalance === bestPositionBalance);
+  const positionFair = candidates.filter(candidate => candidate.positionBalance === bestPositionBalance);
   const topN = Math.min(5, positionFair.length);
-  const picked = positionFair[Math.floor(Math.random() * topN)] || candidates[0];
+  return positionFair[Math.floor(Math.random() * topN)] || candidates[0];
+}
 
-  const team1 = picked.team1;
-  const team2 = picked.team2;
-  const team1Rating = picked.team1Rating;
-  const team2Rating = picked.team2Rating;
+function applyCaptains(teams: Team[]): Team[] {
+  return teams.map(team => {
+    const captain = team.players[Math.floor(Math.random() * team.players.length)];
+    return {
+      ...team,
+      captainName: captain?.name
+    };
+  });
+}
 
-  const team1Avg = team1Rating / team1.length;
-  const team2Avg = team2Rating / team2.length;
-  const balance = Math.abs(team1Avg - team2Avg);
+export function balanceTeams(players: Player[]): BalanceResult {
+  if (players.length < 2) {
+    throw new Error('Need at least 2 players to form teams');
+  }
+
+  if (players.length <= 27) {
+    const attemptCount = Math.max(50, players.length * 5);
+    const candidates: Candidate[] = [];
+
+    for (let attempt = 0; attempt < attemptCount; attempt++) {
+      candidates.push(buildPositionAwareCandidate(players));
+    }
+
+    const picked = chooseBestCandidate(candidates);
+    const [team1, team2] = applyCaptains(picked.teams);
+    const team1Avg = team1.avgRating;
+    const team2Avg = team2.avgRating;
+    const balance = Math.abs(team1Avg - team2Avg);
+
+    let quality: 'excellent' | 'good' | 'poor';
+    if (balance <= 0.5) {
+      quality = 'excellent';
+    } else if (balance <= 1.0) {
+      quality = 'good';
+    } else {
+      quality = 'poor';
+    }
+
+    return {
+      mode: 'two-team',
+      teams: [team1, team2],
+      team1,
+      team2,
+      balance,
+      quality
+    };
+  }
+
+  const attemptCount = Math.max(40, players.length * 4);
+  const candidates: Candidate[] = [];
+
+  for (let attempt = 0; attempt < attemptCount; attempt++) {
+    candidates.push(buildFourTeamCandidate(players));
+  }
+
+  const picked = chooseBestCandidate(candidates);
+  const teams = applyCaptains(picked.teams);
+  const overallAvg = players.reduce((sum, player) => sum + player.rating, 0) / players.length;
+  const balance = Math.max(...teams.map(team => Math.abs(team.avgRating - overallAvg)));
 
   let quality: 'excellent' | 'good' | 'poor';
-  if (balance <= 0.5) {
+  if (balance <= 0.7) {
     quality = 'excellent';
-  } else if (balance <= 1.0) {
+  } else if (balance <= 1.3) {
     quality = 'good';
   } else {
     quality = 'poor';
   }
 
   return {
-    team1: {
-      name: 'Team 1',
-      players: team1,
-      totalRating: team1Rating,
-      avgRating: team1Avg
-    },
-    team2: {
-      name: 'Team 2',
-      players: team2,
-      totalRating: team2Rating,
-      avgRating: team2Avg
-    },
+    mode: 'four-team',
+    teams,
+    team1: teams[0],
+    team2: teams[1],
+    team3: teams[2],
+    team4: teams[3],
     balance,
     quality
   };

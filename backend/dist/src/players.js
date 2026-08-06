@@ -24,7 +24,7 @@ exports.playersDB = [
         firstPreferredPosition: 'midfielder',
         secondPreferredPosition: 'forward',
         thirdPreferredPosition: 'defender',
-        rating: 20,
+        rating: 21,
     },
     {
         name: 'Akhil',
@@ -32,6 +32,13 @@ exports.playersDB = [
         secondPreferredPosition: 'midfielder',
         thirdPreferredPosition: 'goalkeeper',
         rating: 14,
+    },
+    {
+        name: 'Akul',
+        firstPreferredPosition: 'forward',
+        secondPreferredPosition: 'midfielder',
+        thirdPreferredPosition: 'goalkeeper',
+        rating: 12,
     },
     {
         name: 'Anish',
@@ -101,7 +108,7 @@ exports.playersDB = [
         firstPreferredPosition: 'midfielder',
         secondPreferredPosition: 'forward',
         thirdPreferredPosition: 'defender',
-        rating: 18,
+        rating: 19,
     },
     {
         name: 'Ghani',
@@ -137,6 +144,13 @@ exports.playersDB = [
         secondPreferredPosition: 'forward',
         thirdPreferredPosition: 'defender',
         rating: 13,
+    },
+    {
+        name: 'Julien',
+        firstPreferredPosition: 'defender',
+        secondPreferredPosition: 'goalkeeper',
+        thirdPreferredPosition: 'midfielder',
+        rating: 12,
     },
     {
         name: 'Jikku',
@@ -223,6 +237,13 @@ exports.playersDB = [
         rating: 16,
     },
     {
+        name: 'Naveen',
+        firstPreferredPosition: 'midfielder',
+        secondPreferredPosition: 'defender',
+        thirdPreferredPosition: 'goalkeeper',
+        rating: 14,
+    },
+    {
         name: 'Niju',
         firstPreferredPosition: 'defender',
         secondPreferredPosition: 'goalkeeper',
@@ -284,6 +305,13 @@ exports.playersDB = [
         secondPreferredPosition: 'midfielder',
         thirdPreferredPosition: 'goalkeeper',
         rating: 9,
+    },
+    {
+        name: 'Ryan',
+        firstPreferredPosition: 'midfielder',
+        secondPreferredPosition: 'forward',
+        thirdPreferredPosition: 'defender',
+        rating: 22,
     },
     {
         name: 'Rejul',
@@ -374,7 +402,7 @@ exports.playersDB = [
         firstPreferredPosition: 'defender',
         secondPreferredPosition: 'goalkeeper',
         thirdPreferredPosition: 'midfielder',
-        rating: 3,
+        rating: 2,
     },
     {
         name: 'Sobin',

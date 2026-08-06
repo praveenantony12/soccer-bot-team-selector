@@ -297,6 +297,153 @@ const FORMATIONS = {
         { x: 80, y: 45, label: 'Right Midfield', code: 'RM' },
         { x: 50, y: 20, label: 'Striker', code: 'ST' },
     ],
+    // ── 12-a-side ────────────────────────────────────────────────────────────
+    // 3-4-4 - midfield-heavy with extra attacker
+    '3-4-4': [
+        { x: 50, y: 95, label: 'Goalkeeper', code: 'GK' },
+        { x: 30, y: 75, label: 'Center Back', code: 'CB' },
+        { x: 50, y: 80, label: 'Center Back', code: 'CB' },
+        { x: 70, y: 75, label: 'Center Back', code: 'CB' },
+        { x: 15, y: 50, label: 'Left Midfield', code: 'LM' },
+        { x: 35, y: 50, label: 'Center Midfield', code: 'CM' },
+        { x: 50, y: 55, label: 'Defensive Midfield', code: 'CDM' },
+        { x: 65, y: 50, label: 'Center Midfield', code: 'CM' },
+        { x: 85, y: 50, label: 'Right Midfield', code: 'RM' },
+        { x: 25, y: 25, label: 'Striker', code: 'ST' },
+        { x: 50, y: 20, label: 'Striker', code: 'ST' },
+        { x: 75, y: 25, label: 'Striker', code: 'ST' },
+    ],
+    // 2-5-4 - midfield-dominant
+    '2-5-4': [
+        { x: 50, y: 95, label: 'Goalkeeper', code: 'GK' },
+        { x: 35, y: 73, label: 'Center Back', code: 'CB' },
+        { x: 65, y: 73, label: 'Center Back', code: 'CB' },
+        { x: 10, y: 55, label: 'Left Wing Back', code: 'LWB' },
+        { x: 30, y: 48, label: 'Center Midfield', code: 'CM' },
+        { x: 50, y: 55, label: 'Defensive Midfield', code: 'CDM' },
+        { x: 70, y: 48, label: 'Center Midfield', code: 'CM' },
+        { x: 90, y: 55, label: 'Right Wing Back', code: 'RWB' },
+        { x: 25, y: 25, label: 'Striker', code: 'ST' },
+        { x: 50, y: 20, label: 'Striker', code: 'ST' },
+        { x: 75, y: 25, label: 'Striker', code: 'ST' },
+        { x: 50, y: 30, label: 'Attacking Midfield', code: 'CAM' },
+    ],
+    // 2-4-5 - defensive with extra midfield
+    '2-4-5': [
+        { x: 50, y: 95, label: 'Goalkeeper', code: 'GK' },
+        { x: 35, y: 73, label: 'Center Back', code: 'CB' },
+        { x: 65, y: 73, label: 'Center Back', code: 'CB' },
+        { x: 15, y: 50, label: 'Left Midfield', code: 'LM' },
+        { x: 35, y: 50, label: 'Center Midfield', code: 'CM' },
+        { x: 50, y: 55, label: 'Defensive Midfield', code: 'CDM' },
+        { x: 65, y: 50, label: 'Center Midfield', code: 'CM' },
+        { x: 85, y: 50, label: 'Right Midfield', code: 'RM' },
+        { x: 20, y: 25, label: 'Striker', code: 'ST' },
+        { x: 40, y: 20, label: 'Striker', code: 'ST' },
+        { x: 60, y: 20, label: 'Striker', code: 'ST' },
+        { x: 80, y: 25, label: 'Striker', code: 'ST' },
+    ],
+    // ── 13-a-side ────────────────────────────────────────────────────────────
+    // 3-4-5 - balanced with extra attacker
+    '3-4-5': [
+        { x: 50, y: 95, label: 'Goalkeeper', code: 'GK' },
+        { x: 30, y: 75, label: 'Center Back', code: 'CB' },
+        { x: 50, y: 80, label: 'Center Back', code: 'CB' },
+        { x: 70, y: 75, label: 'Center Back', code: 'CB' },
+        { x: 15, y: 50, label: 'Left Midfield', code: 'LM' },
+        { x: 35, y: 50, label: 'Center Midfield', code: 'CM' },
+        { x: 50, y: 55, label: 'Defensive Midfield', code: 'CDM' },
+        { x: 65, y: 50, label: 'Center Midfield', code: 'CM' },
+        { x: 85, y: 50, label: 'Right Midfield', code: 'RM' },
+        { x: 20, y: 25, label: 'Striker', code: 'ST' },
+        { x: 40, y: 20, label: 'Striker', code: 'ST' },
+        { x: 60, y: 20, label: 'Striker', code: 'ST' },
+        { x: 80, y: 25, label: 'Striker', code: 'ST' },
+    ],
+    // 3-5-4 - midfield-heavy
+    '3-5-4': [
+        { x: 50, y: 95, label: 'Goalkeeper', code: 'GK' },
+        { x: 30, y: 75, label: 'Center Back', code: 'CB' },
+        { x: 50, y: 80, label: 'Center Back', code: 'CB' },
+        { x: 70, y: 75, label: 'Center Back', code: 'CB' },
+        { x: 10, y: 55, label: 'Left Wing Back', code: 'LWB' },
+        { x: 30, y: 48, label: 'Center Midfield', code: 'CM' },
+        { x: 50, y: 55, label: 'Defensive Midfield', code: 'CDM' },
+        { x: 70, y: 48, label: 'Center Midfield', code: 'CM' },
+        { x: 90, y: 55, label: 'Right Wing Back', code: 'RWB' },
+        { x: 25, y: 25, label: 'Striker', code: 'ST' },
+        { x: 50, y: 20, label: 'Striker', code: 'ST' },
+        { x: 75, y: 25, label: 'Striker', code: 'ST' },
+        { x: 50, y: 30, label: 'Attacking Midfield', code: 'CAM' },
+    ],
+    // 2-5-5 - ultra-midfield-heavy
+    '2-5-5': [
+        { x: 50, y: 95, label: 'Goalkeeper', code: 'GK' },
+        { x: 35, y: 73, label: 'Center Back', code: 'CB' },
+        { x: 65, y: 73, label: 'Center Back', code: 'CB' },
+        { x: 10, y: 55, label: 'Left Wing Back', code: 'LWB' },
+        { x: 30, y: 48, label: 'Center Midfield', code: 'CM' },
+        { x: 50, y: 55, label: 'Defensive Midfield', code: 'CDM' },
+        { x: 70, y: 48, label: 'Center Midfield', code: 'CM' },
+        { x: 90, y: 55, label: 'Right Wing Back', code: 'RWB' },
+        { x: 20, y: 25, label: 'Striker', code: 'ST' },
+        { x: 40, y: 20, label: 'Striker', code: 'ST' },
+        { x: 60, y: 20, label: 'Striker', code: 'ST' },
+        { x: 80, y: 25, label: 'Striker', code: 'ST' },
+        { x: 50, y: 30, label: 'Attacking Midfield', code: 'CAM' },
+    ],
+    // ── 14-a-side ────────────────────────────────────────────────────────────
+    // 4-4-5 - balanced with extra attacker
+    '4-4-5': [
+        { x: 50, y: 95, label: 'Goalkeeper', code: 'GK' },
+        { x: 20, y: 75, label: 'Left Back', code: 'LB' },
+        { x: 40, y: 75, label: 'Center Back', code: 'CB' },
+        { x: 60, y: 75, label: 'Center Back', code: 'CB' },
+        { x: 80, y: 75, label: 'Right Back', code: 'RB' },
+        { x: 15, y: 50, label: 'Left Midfield', code: 'LM' },
+        { x: 35, y: 50, label: 'Center Midfield', code: 'CM' },
+        { x: 50, y: 55, label: 'Defensive Midfield', code: 'CDM' },
+        { x: 65, y: 50, label: 'Center Midfield', code: 'CM' },
+        { x: 85, y: 50, label: 'Right Midfield', code: 'RM' },
+        { x: 20, y: 25, label: 'Striker', code: 'ST' },
+        { x: 40, y: 20, label: 'Striker', code: 'ST' },
+        { x: 60, y: 20, label: 'Striker', code: 'ST' },
+        { x: 80, y: 25, label: 'Striker', code: 'ST' },
+    ],
+    // 4-5-4 - midfield-heavy
+    '4-5-4': [
+        { x: 50, y: 95, label: 'Goalkeeper', code: 'GK' },
+        { x: 20, y: 75, label: 'Left Back', code: 'LB' },
+        { x: 40, y: 75, label: 'Center Back', code: 'CB' },
+        { x: 60, y: 75, label: 'Center Back', code: 'CB' },
+        { x: 80, y: 75, label: 'Right Back', code: 'RB' },
+        { x: 10, y: 55, label: 'Left Wing Back', code: 'LWB' },
+        { x: 30, y: 48, label: 'Center Midfield', code: 'CM' },
+        { x: 50, y: 55, label: 'Defensive Midfield', code: 'CDM' },
+        { x: 70, y: 48, label: 'Center Midfield', code: 'CM' },
+        { x: 90, y: 55, label: 'Right Wing Back', code: 'RWB' },
+        { x: 25, y: 25, label: 'Striker', code: 'ST' },
+        { x: 50, y: 20, label: 'Striker', code: 'ST' },
+        { x: 75, y: 25, label: 'Striker', code: 'ST' },
+        { x: 50, y: 30, label: 'Attacking Midfield', code: 'CAM' },
+    ],
+    // 3-5-5 - ultra-attacking midfield
+    '3-5-5': [
+        { x: 50, y: 95, label: 'Goalkeeper', code: 'GK' },
+        { x: 30, y: 75, label: 'Center Back', code: 'CB' },
+        { x: 50, y: 80, label: 'Center Back', code: 'CB' },
+        { x: 70, y: 75, label: 'Center Back', code: 'CB' },
+        { x: 10, y: 55, label: 'Left Wing Back', code: 'LWB' },
+        { x: 30, y: 48, label: 'Center Midfield', code: 'CM' },
+        { x: 50, y: 55, label: 'Defensive Midfield', code: 'CDM' },
+        { x: 70, y: 48, label: 'Center Midfield', code: 'CM' },
+        { x: 90, y: 55, label: 'Right Wing Back', code: 'RWB' },
+        { x: 20, y: 25, label: 'Striker', code: 'ST' },
+        { x: 40, y: 20, label: 'Striker', code: 'ST' },
+        { x: 60, y: 20, label: 'Striker', code: 'ST' },
+        { x: 80, y: 25, label: 'Striker', code: 'ST' },
+        { x: 50, y: 30, label: 'Attacking Midfield', code: 'CAM' },
+    ],
 };
 // Maps exact player count to candidate formation names for that squad size.
 // Selector picks the best match based on actual position distribution.
@@ -307,6 +454,9 @@ const FORMATIONS_BY_COUNT = {
     9: ['3-4-1', '4-3-1', '3-3-2', '4-2-2'],
     10: ['4-3-2', '3-4-2', '4-4-1', '3-5-1'],
     11: ['4-4-2', '4-3-3', '3-5-2', '4-2-3-1', '5-3-2', '4-1-4-1'],
+    12: ['3-4-4', '2-5-4', '2-4-5'],
+    13: ['3-4-5', '3-5-4', '2-5-5'],
+    14: ['4-4-5', '4-5-4', '3-5-5'],
 };
 // Zone classification for each formation position code.
 const POSITION_ZONE = {
@@ -376,7 +526,7 @@ function selectBestFormation(players) {
     }
     const outfield = defenders + midfielders + forwards;
     // Clamp to supported squad sizes
-    const bucket = Math.max(6, Math.min(11, playerCount));
+    const bucket = Math.max(6, Math.min(14, playerCount));
     const candidates = FORMATIONS_BY_COUNT[bucket] ?? FORMATIONS_BY_COUNT[11];
     // Score each candidate by how closely its D/M/F ratio matches the squad
     let bestFormation = candidates[0];
@@ -584,29 +734,43 @@ function assignPlayersToFormation(players, formationPositions) {
     return slots;
 }
 /**
- * Generate formations for both teams
+ * Generate formations for one or more teams.
  */
-function generateFormations(team1Players, team2Players) {
-    // Select formation for each team (could be same or different based on player distribution)
-    const team1Formation = selectBestFormation(team1Players);
-    const team2Formation = selectBestFormation(team2Players);
-    // Assign players to positions (force-assignment ensures no bench)
-    const team1Slots = assignPlayersToFormation(team1Players, team1Formation.positions);
-    const team2Slots = assignPlayersToFormation(team2Players, team2Formation.positions);
-    return {
-        team1: {
-            name: team1Formation.name,
-            description: getFormationDescription(team1Formation.name),
-            slots: team1Slots,
+function generateFormations(team1Players, team2Players, team3Players, team4Players) {
+    const buildFormation = (players) => {
+        const formation = selectBestFormation(players);
+        const slots = assignPlayersToFormation(players, formation.positions);
+        return {
+            name: formation.name,
+            description: getFormationDescription(formation.name),
+            slots,
             bench: [],
-        },
-        team2: {
-            name: team2Formation.name,
-            description: getFormationDescription(team2Formation.name),
-            slots: team2Slots,
-            bench: [],
-        },
+        };
     };
+    const teamEntries = [
+        team1Players ? { label: 'Team 1', color: 'blue', formation: buildFormation(team1Players) } : null,
+        team2Players ? { label: 'Team 2', color: 'red', formation: buildFormation(team2Players) } : null,
+        team3Players ? { label: 'Team 3', color: 'blue', formation: buildFormation(team3Players) } : null,
+        team4Players ? { label: 'Team 4', color: 'red', formation: buildFormation(team4Players) } : null,
+    ];
+    const teams = teamEntries.filter((entry) => entry !== null);
+    if (teams.length === 0) {
+        return {};
+    }
+    const result = { teams };
+    if (teams[0]) {
+        result.team1 = teams[0].formation;
+    }
+    if (teams[1]) {
+        result.team2 = teams[1].formation;
+    }
+    if (teams[2]) {
+        result.team3 = teams[2].formation;
+    }
+    if (teams[3]) {
+        result.team4 = teams[3].formation;
+    }
+    return result;
 }
 function getFormationDescription(formation) {
     const descriptions = {
@@ -640,6 +804,18 @@ function getFormationDescription(formation) {
         '4-2-3-1': 'Double pivot screens the defence, fluid attacking trio behind a lone striker creates overloads everywhere',
         '5-3-2': 'Three centre-backs and two wing-backs provide defensive solidity, three mids drive, two strikers combine',
         '4-1-4-1': 'Defensive midfielder sits in front of back four, wide mids stretch the pitch, lone striker leads pressing',
+        // 12-a-side
+        '3-4-4': 'Three-man defence with powerful midfield, four attackers overload the final third',
+        '2-5-4': 'Double back line with five-man midfield, wing-backs provide width, four strikers press high',
+        '2-4-5': 'Solid defensive base, midfield four controls possession, five attackers create constant danger',
+        // 13-a-side
+        '3-4-5': 'Three-man defence, midfield four dominates, five attackers overwhelm the opposition',
+        '3-5-4': 'Wing-backs provide width, five-man midfield controls the game, four attackers combine',
+        '2-5-5': 'Ultra-midfield-heavy formation, five midfielders dominate possession, five attackers press relentlessly',
+        // 14-a-side
+        '4-4-5': 'Solid back four, midfield four controls the game, five attackers create overloads everywhere',
+        '4-5-4': 'Back four provides defensive security, five-man midfield dominates, four attackers link play',
+        '3-5-5': 'Three-man defence with wing-backs, five midfielders control possession, five attackers overwhelm',
     };
     return descriptions[formation] || 'Balanced formation tailored to the squad\'s strengths';
 }

@@ -19,6 +19,7 @@ Hey everyone! It's game day! 🎯
 🏃‍♂️ Don't forget to join the game before 7 PM
 📱 Use the web app to select your name
 👥 Need at least 12 players for balanced teams
+⚽ 12–27 players form 2 balanced teams; 28+ players form 4 teams at the scheduled time
 
 *Join now: https://soccer-bot-unified.onrender.com*
 
@@ -77,6 +78,7 @@ function formatInsufficientPlayers(playerCount) {
 
 ⏰ *Deadline:* 7:00 PM
 👥 *Minimum required:* 12 players
+⚽ *Scheduled formation:* 12–27 players form 2 teams, and 28+ players form 4 teams when the cutoff arrives
 
 Let's get more players to join! 🎯`;
 }

@@ -12,6 +12,7 @@ class SupabasePersistentStore {
     constructor() {
         this.supabase = null;
         this.initialized = false;
+        this.firstLoadComplete = false;
         this.initialize();
     }
     async initialize() {
@@ -68,7 +69,11 @@ class SupabasePersistentStore {
                 throw error;
             }
             if (data) {
-                console.log('📁 Loaded persistent data from Supabase');
+                // Only log on first successful load to reduce noise
+                if (!this.firstLoadComplete) {
+                    console.log('📁 Loaded persistent data from Supabase');
+                    this.firstLoadComplete = true;
+                }
                 // Convert Supabase snake_case to camelCase for consistency
                 // Handle JSON strings for array fields
                 let currentPlayers = data.current_players || [];
@@ -89,9 +94,20 @@ class SupabasePersistentStore {
                         formedTeams = null;
                     }
                 }
+                // Parse player_tokens (stored as JSONB in Supabase)
+                let playerTokens = data.player_tokens || {};
+                if (typeof playerTokens === 'string') {
+                    try {
+                        playerTokens = JSON.parse(playerTokens);
+                    }
+                    catch (e) {
+                        playerTokens = {};
+                    }
+                }
                 return {
                     date: data.date,
                     current_players: Array.isArray(currentPlayers) ? currentPlayers : [],
+                    player_tokens: playerTokens || {},
                     last_reset: data.last_reset || '',
                     formed_teams: formedTeams,
                     daily_status: data.daily_status || 'collecting',
@@ -157,9 +173,18 @@ class SupabasePersistentStore {
                 ...data,
                 updated_at: new Date().toISOString()
             };
-            const { error } = await supabase
+            let { error } = await supabase
                 .from('daily_data')
                 .upsert(updateData, { onConflict: 'date' });
+            // If player_tokens column doesn't exist, try saving without it
+            if (error && error.code === 'PGRST204' && error.message?.includes('player_tokens')) {
+                console.warn('⚠️ player_tokens column not found in database. Run migration: 002_add_player_tokens.sql');
+                delete updateData.player_tokens;
+                const result = await supabase
+                    .from('daily_data')
+                    .upsert(updateData, { onConflict: 'date' });
+                error = result.error;
+            }
             if (error)
                 throw error;
             console.log('💾 Saved persistent data to Supabase');
@@ -187,7 +212,6 @@ class SupabasePersistentStore {
             console.log('⚠️ current_players is not an array, converting');
             players = [];
         }
-        console.log('🔍 Debug - current_players from Supabase:', players, 'type:', typeof players, 'isArray:', Array.isArray(players));
         return players;
     }
     async addPlayer(name) {

@@ -32,13 +32,11 @@ app.use(express.json());
 const PORT = process.env.PORT || 3000;
 const TIMEZONE = process.env.TEAM_TIMEZONE || 'America/New_York';
 const MIN_PLAYERS = Number(process.env.MIN_PLAYERS_TO_FORM_TEAMS || 12);
-const MAX_PLAYERS = Number(process.env.MAX_PLAYERS_TO_FORM_TEAMS || 22);
 const TEAM_GENERATION_CRON = process.env.TEAM_GENERATION_CRON || '30 19 * * *';
 const ENABLE_MANUAL_GENERATE =
   process.env.ENABLE_MANUAL_GENERATE === 'true' || process.env.NODE_ENV !== 'production';
 
 let mutationQueue = Promise.resolve();
-let isAutoGenerating = false;
 
 function runMutation(task) {
   const next = mutationQueue.then(task, task);
@@ -174,6 +172,72 @@ function sortPlayersByName(players) {
   return [...players].sort((a, b) => a.name.localeCompare(b.name));
 }
 
+function buildMatchSchedule(teams) {
+  const captainTeams = teams.filter(team => team.captainName);
+  if (captainTeams.length < 4) {
+    return [];
+  }
+
+  const [teamA, teamB, teamC, teamD] = captainTeams;
+  const slots = [
+    {
+      title: 'Slot 1 (8:30 AM - 9:15 AM)',
+      matches: [
+        `${teamA.captainName}'s ${teamA.name} vs ${teamC.captainName}'s ${teamC.name} (Lacrosse Post)`,
+        `${teamB.captainName}'s ${teamB.name} vs ${teamD.captainName}'s ${teamD.name} (Soccer Post)`
+      ]
+    },
+    {
+      title: 'Slot 2 (9:15 AM - 10:00 AM)',
+      matches: [
+        `${teamA.captainName}'s ${teamA.name} vs ${teamD.captainName}'s ${teamD.name} (Lacrosse Post)`,
+        `${teamB.captainName}'s ${teamB.name} vs ${teamC.captainName}'s ${teamC.name} (Soccer Post)`
+      ]
+    }
+  ];
+
+  return slots;
+}
+
+function buildUiTeamPayload(result) {
+  if (result.mode === 'four-team') {
+    const teams = result.teams.map((team, index) => ({
+      name: team.name,
+      displayName: `${team.captainName ? `${team.captainName}'s ` : ''}${team.name}`,
+      color: index < 2 ? 'red' : 'blue',
+      captainName: team.captainName,
+      players: team.players.map(player => ({ name: player.name }))
+    }));
+
+    return {
+      mode: 'four-team',
+      teams,
+      captainsNote: 'Note: Team captains are randomly selected to lead coordination and are responsible for ensuring soccer balls and goal posts are ready and available before the game.',
+      schedule: buildMatchSchedule(teams)
+    };
+  }
+
+  return {
+    mode: 'two-team',
+    teams: [
+      {
+        name: result.team1.name,
+        displayName: result.team1.name,
+        color: 'blue',
+        captainName: result.team1.captainName,
+        players: result.team1.players.map(player => ({ name: player.name }))
+      },
+      {
+        name: result.team2.name,
+        displayName: result.team2.name,
+        color: 'red',
+        captainName: result.team2.captainName,
+        players: result.team2.players.map(player => ({ name: player.name }))
+      }
+    ]
+  };
+}
+
 function buildPlayers(names) {
   return names.map(name => {
     const player = getPlayerByName(name);
@@ -207,24 +271,37 @@ async function generateTeamsForToday(source = 'manual') {
   const players = buildPlayers(names);
   const result = balanceTeams(players);
   
-  // Generate formations for both teams
-  const formations = generateFormations(result.team1.players, result.team2.players);
+  const formationPlayers = result.mode === 'four-team'
+    ? [result.team1.players, result.team2.players, result.team3.players, result.team4.players]
+    : [result.team1.players, result.team2.players];
+  const formations = generateFormations(...formationPlayers);
 
   const normalized = {
     ...result,
     team1: {
       ...result.team1,
-      name: 'Blue Team',
+      name: result.mode === 'four-team' ? 'Red Team A' : 'Blue Team',
       players: sortPlayersByName(result.team1.players)
     },
     team2: {
       ...result.team2,
-      name: 'Red Team',
+      name: result.mode === 'four-team' ? 'Red Team B' : 'Red Team',
       players: sortPlayersByName(result.team2.players)
     },
+    team3: result.team3 ? {
+      ...result.team3,
+      name: 'Blue Team A',
+      players: sortPlayersByName(result.team3.players)
+    } : undefined,
+    team4: result.team4 ? {
+      ...result.team4,
+      name: 'Blue Team B',
+      players: sortPlayersByName(result.team4.players)
+    } : undefined,
     formations,
     generatedFrom: source,
-    generatedAt: new Date().toISOString()
+    generatedAt: new Date().toISOString(),
+    ...buildUiTeamPayload(result)
   };
 
   await Promise.resolve(store.saveTeams(normalized));
@@ -259,8 +336,18 @@ async function getUiState() {
       cutoffTimeLabel: formatCutoffTimeLabel(),
       canGenerateNow: ENABLE_MANUAL_GENERATE,
       teams: {
+        mode: formedTeams.mode || 'two-team',
         blueTeam: formedTeams.team1.players.map(p => p.name),
         redTeam: formedTeams.team2.players.map(p => p.name),
+        groups: formedTeams.teams?.map(team => ({
+          name: team.name,
+          displayName: team.displayName,
+          color: team.color,
+          captainName: team.captainName,
+          players: team.players.map((player) => player.name)
+        })),
+        captainsNote: formedTeams.captainsNote,
+        schedule: formedTeams.schedule,
         generatedAt: formedTeams.generatedAt || null
       },
       formations: formedTeams.formations || null
@@ -324,26 +411,6 @@ app.post("/api/join", async (req, res) => {
       }
     });
 
-    // Check if we've reached MAX_PLAYERS and auto-generate teams
-    const currentCount = await Promise.resolve(store.getPlayerCount());
-    const dailyStatus = await Promise.resolve(store.getDailyStatus());
-    
-    if (currentCount >= MAX_PLAYERS && dailyStatus === 'collecting' && !isAutoGenerating) {
-      console.log(`🎯 Auto-generating teams: ${currentCount} players reached (MAX_PLAYERS limit)`);
-      isAutoGenerating = true;
-      try {
-        const generated = await generateTeamsForToday('max-players');
-        if (generated.ok) {
-          console.log('✅ Teams auto-generated due to MAX_PLAYERS reached');
-        } else {
-          console.log(`❌ Auto-generation failed: ${generated.error}`);
-        }
-      } catch (err) {
-        console.error('❌ Error during auto-generation:', err);
-      } finally {
-        isAutoGenerating = false;
-      }
-    }
   } catch (error) {
     console.error('❌ Failed to persist join request:', error);
     return res.status(500).json({ success: false, error: 'Failed to persist players' });

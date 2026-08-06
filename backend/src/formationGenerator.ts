@@ -20,8 +20,15 @@ export interface TeamFormation {
 }
 
 export interface FormationResult {
-  team1: TeamFormation;
-  team2: TeamFormation;
+  team1?: TeamFormation;
+  team2?: TeamFormation;
+  team3?: TeamFormation;
+  team4?: TeamFormation;
+  teams?: Array<{
+    label: string;
+    color: 'red' | 'blue';
+    formation: TeamFormation;
+  }>;
 }
 
 // Standard soccer formations with position coordinates
@@ -798,34 +805,53 @@ function assignPlayersToFormation(
 }
 
 /**
- * Generate formations for both teams
+ * Generate formations for one or more teams.
  */
 export function generateFormations(
-  team1Players: Player[], 
-  team2Players: Player[]
+  team1Players: Player[],
+  team2Players: Player[],
+  team3Players?: Player[],
+  team4Players?: Player[]
 ): FormationResult {
-  // Select formation for each team (could be same or different based on player distribution)
-  const team1Formation = selectBestFormation(team1Players);
-  const team2Formation = selectBestFormation(team2Players);
-  
-  // Assign players to positions (force-assignment ensures no bench)
-  const team1Slots = assignPlayersToFormation(team1Players, team1Formation.positions);
-  const team2Slots = assignPlayersToFormation(team2Players, team2Formation.positions);
-  
-  return {
-    team1: {
-      name: team1Formation.name,
-      description: getFormationDescription(team1Formation.name),
-      slots: team1Slots,
+  const buildFormation = (players: Player[]) => {
+    const formation = selectBestFormation(players);
+    const slots = assignPlayersToFormation(players, formation.positions);
+    return {
+      name: formation.name,
+      description: getFormationDescription(formation.name),
+      slots,
       bench: [],
-    },
-    team2: {
-      name: team2Formation.name,
-      description: getFormationDescription(team2Formation.name),
-      slots: team2Slots,
-      bench: [],
-    },
+    };
   };
+
+  const teamEntries: Array<{ label: string; color: 'red' | 'blue'; formation: TeamFormation } | null> = [
+    team1Players ? { label: 'Team 1', color: 'blue' as const, formation: buildFormation(team1Players) } : null,
+    team2Players ? { label: 'Team 2', color: 'red' as const, formation: buildFormation(team2Players) } : null,
+    team3Players ? { label: 'Team 3', color: 'blue' as const, formation: buildFormation(team3Players) } : null,
+    team4Players ? { label: 'Team 4', color: 'red' as const, formation: buildFormation(team4Players) } : null,
+  ];
+
+  const teams = teamEntries.filter((entry): entry is { label: string; color: 'red' | 'blue'; formation: TeamFormation } => entry !== null);
+
+  if (teams.length === 0) {
+    return {};
+  }
+
+  const result: FormationResult = { teams };
+  if (teams[0]) {
+    result.team1 = teams[0].formation;
+  }
+  if (teams[1]) {
+    result.team2 = teams[1].formation;
+  }
+  if (teams[2]) {
+    result.team3 = teams[2].formation;
+  }
+  if (teams[3]) {
+    result.team4 = teams[3].formation;
+  }
+
+  return result;
 }
 
 function getFormationDescription(formation: string): string {

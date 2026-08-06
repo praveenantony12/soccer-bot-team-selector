@@ -24,41 +24,76 @@
     <div class="formed-wrapper" *ngIf="isFormed && !!uiState?.teams">
       <div class="teams-header">
         <h2>🏆 Teams for Today</h2>
-        <p class="subtitle">Finalized after {{ uiState?.cutoffTimeLabel }}</p>
+        <div class="countdown-badge" *ngIf="countdownActive || countdownText === 'Game Started'" [class.countdown-active]="countdownActive" [class.countdown-pulsing]="countdownActive && countdownText !== 'Game Started'">
+          <span *ngIf="countdownActive && countdownText !== 'Game Started'">Game starts in</span>
+          <span style="margin: .5rem;">{{ countdownText }}</span>
+          <span *ngIf="countdownActive && countdownText !== 'Game Started'">mins</span>
+        </div>
       </div>
 
-      <div class="teams-grid">
-        <section class="team-card blue">
-          <h3>🔵 Blue Team</h3>
-          <ul>
-            <li *ngFor="let player of uiState?.teams?.blueTeam">{{ player }}</li>
-          </ul>
-        </section>
+      <div class="teams-grid" [class.four-team-grid]="uiState?.teams?.mode === 'four-team'">
+        <ng-container *ngIf="uiState?.teams?.groups?.length; else legacyTeams">
+          <section
+            class="team-card"
+            *ngFor="let team of uiState?.teams?.groups"
+            [class.blue]="team.color === 'blue'"
+            [class.red]="team.color === 'red'"
+          >
+            <h3>{{ cleanTeamName(team.displayName) }}</h3>
+            <p class="team-meta" *ngIf="team.captainName">Captain: {{ team.captainName }}</p>
+            <ul>
+              <li *ngFor="let player of team.players">{{ player }}</li>
+            </ul>
+          </section>
+        </ng-container>
 
-        <section class="team-card red">
-          <h3>🔴 Red Team</h3>
-          <ul>
-            <li *ngFor="let player of uiState?.teams?.redTeam">{{ player }}</li>
-          </ul>
-        </section>
+        <ng-template #legacyTeams>
+          <section class="team-card blue">
+            <h3>🔵 Blue Team</h3>
+            <ul>
+              <li *ngFor="let player of uiState?.teams?.blueTeam">{{ player }}</li>
+            </ul>
+          </section>
+
+          <section class="team-card red">
+            <h3>🔴 Red Team</h3>
+            <ul>
+              <li *ngFor="let player of uiState?.teams?.redTeam">{{ player }}</li>
+            </ul>
+          </section>
+        </ng-template>
+      </div>
+
+      <p class="captains-note" *ngIf="uiState?.teams?.mode === 'four-team' && !!uiState?.teams?.captainsNote">
+        {{ uiState?.teams?.captainsNote }}
+      </p>
+
+      <div class="schedule-section" *ngIf="uiState?.teams?.mode === 'four-team' && uiState?.teams?.schedule?.length">
+        <div class="schedule-header">
+          <h3>🗓️ Match Schedule</h3>
+          <p class="schedule-subtitle">Four-team rotation for the day.</p>
+        </div>
+        <div *ngFor="let slot of uiState?.teams?.schedule" class="schedule-slot-group">
+          <div class="schedule-time-header">{{ slot.title }}</div>
+          <div class="schedule-matches">
+            <div class="schedule-match" *ngFor="let match of slot.matches" [ngClass]="extractMatchColors(match) ? 'has-colors' : ''">
+              <span class="match-text" [ngClass]="extractMatchColors(match) ? 'formatted' : ''">{{ getFormattedMatchText(match) }}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Formation Display -->
-      <div class="formations-section" *ngIf="uiState?.formations">
+      <div class="formations-section" *ngIf="formationCards.length">
         <div class="formations-header">
           <h3>⚽ Tactical Formations</h3>
           <p class="formation-subtitle">AI-optimized positions based on player strengths</p>
         </div>
-        <div class="formations-grid">
-          <app-formation 
-            *ngIf="uiState?.formations?.team1"
-            [formation]="uiState!.formations!.team1" 
-            teamColor="blue">
-          </app-formation>
-          <app-formation 
-            *ngIf="uiState?.formations?.team2"
-            [formation]="uiState!.formations!.team2" 
-            teamColor="red">
+        <div class="formations-grid" [class.four-team-grid]="formationCards.length > 2">
+          <app-formation
+            *ngFor="let card of formationCards"
+            [formation]="card"
+            [teamColor]="card.color">
           </app-formation>
         </div>
       </div>
@@ -286,8 +321,15 @@
     margin-bottom: 80px;
   }
 
+  .teams-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+
   .teams-header h2 {
-    margin: 0;
+    margin: 0 0 0.6rem 0;
     text-align: center;
     color: #ffffff;
     font-size: 2rem;
@@ -295,18 +337,59 @@
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   }
 
-  .teams-header .subtitle {
-    text-align: center;
-    margin-top: 0.4rem;
-    margin-bottom: 1.5rem;
-    color: #b0b0b0;
+  .countdown-badge {
+    display: inline-block;
+    padding: 0.35rem 0.75rem;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
     font-size: 0.95rem;
+    font-weight: 600;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.08em;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .countdown-badge span {
+    display: inline;
+  }
+
+  .countdown-badge span:nth-child(2) {
+    font-size: 1.2rem;
+    font-weight: 800;
+    margin: 0 0.3rem;
+  }
+
+  .countdown-badge.countdown-active {
+    background: rgba(76, 175, 80, 0.18);
+    border: 1px solid rgba(76, 175, 80, 0.35);
+  }
+
+  .countdown-badge.countdown-pulsing {
+    animation: pulse-countdown 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse-countdown {
+    0%, 100% { 
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% { 
+      opacity: 0.7;
+      transform: scale(1.02);
+    }
   }
 
   .teams-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .teams-grid.four-team-grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   }
 
   .team-card {
@@ -363,6 +446,124 @@
   .team-card li:hover {
     background: rgba(255, 255, 255, 0.15);
     transform: scale(1.05);
+  }
+
+  .team-meta {
+    margin: 0 0 0.75rem 0;
+    text-align: center;
+    color: #dfe4ff;
+    font-size: 0.9rem;
+  }
+
+  .captains-note {
+    margin: 0 0 1rem 0;
+    padding: 0.9rem 1rem;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.08);
+    color: #f3f3ff;
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
+  .schedule-section {
+    margin-bottom: 2rem;
+  }
+
+  .schedule-header {
+    margin-bottom: 1.2rem;
+  }
+
+  .schedule-header h3 {
+    margin: 0 0 0.25rem 0;
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+
+  .schedule-subtitle {
+    margin: 0;
+    color: #c7c7ff;
+    font-size: 0.9rem;
+  }
+
+  .schedule-slot-group {
+    margin-bottom: 1rem;
+  }
+
+  .schedule-time-header {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.25), rgba(56, 142, 60, 0.15));
+    border-left: 4px solid rgba(76, 175, 80, 0.6);
+    padding: 0.6rem 0.9rem;
+    border-radius: 6px 6px 0 0;
+    color: #4caf50;
+    font-weight: 600;
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+  }
+
+  .schedule-matches {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    padding: 0.75rem;
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .schedule-match {
+    color: #f3f3ff;
+    font-size: 0.88rem;
+    line-height: 1.4;
+    padding: 0.5rem 0.6rem;
+    background: rgba(255,255,255,0.04);
+    border-radius: 4px;
+    border-left: 2px solid rgba(76, 175, 80, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .schedule-match.has-colors {
+    background: linear-gradient(90deg, rgba(239, 83, 80, 0.08) 0%, rgba(255, 255, 255, 0.02) 48%, rgba(66, 165, 245, 0.08) 100%);
+    border-left: 2px solid rgba(239, 83, 80, 0.4);
+    border-right: 2px solid rgba(66, 165, 245, 0.4);
+  }
+
+  .match-text {
+    flex: 1;
+  }
+
+  .match-text.formatted {
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+
+  .match-colors {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #b0b0b0;
+    flex-shrink: 0;
+  }
+
+  .team-color-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  .team-color-dot.red {
+    background: #ef5350;
+    box-shadow: 0 0 8px rgba(239, 83, 80, 0.4);
+  }
+
+  .team-color-dot.blue {
+    background: #42a5f5;
+    box-shadow: 0 0 8px rgba(66, 165, 245, 0.4);
   }
 
   /* Formations Section */
