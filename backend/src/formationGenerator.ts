@@ -824,11 +824,17 @@ export function generateFormations(
     };
   };
 
+  // Color assignment must match the team naming convention from teamBalancer:
+  //   2-team mode:  team1 = Blue Team,   team2 = Red Team
+  //   4-team mode:  team1 = Red Team A,  team2 = Red Team B,
+  //                 team3 = Blue Team A, team4 = Blue Team B
+  const isFourTeam = Boolean(team3Players || team4Players);
+
   const teamEntries: Array<{ label: string; color: 'red' | 'blue'; formation: TeamFormation } | null> = [
-    team1Players ? { label: 'Team 1', color: 'blue' as const, formation: buildFormation(team1Players) } : null,
-    team2Players ? { label: 'Team 2', color: 'red' as const, formation: buildFormation(team2Players) } : null,
-    team3Players ? { label: 'Team 3', color: 'blue' as const, formation: buildFormation(team3Players) } : null,
-    team4Players ? { label: 'Team 4', color: 'red' as const, formation: buildFormation(team4Players) } : null,
+    team1Players ? { label: isFourTeam ? 'Team 1 (Red)' : 'Team 1', color: isFourTeam ? 'red' as const : 'blue' as const, formation: buildFormation(team1Players) } : null,
+    team2Players ? { label: isFourTeam ? 'Team 2 (Red)' : 'Team 2', color: isFourTeam ? 'red' as const : 'red' as const, formation: buildFormation(team2Players) } : null,
+    team3Players ? { label: 'Team 3 (Blue)', color: 'blue' as const, formation: buildFormation(team3Players) } : null,
+    team4Players ? { label: 'Team 4 (Blue)', color: 'blue' as const, formation: buildFormation(team4Players) } : null,
   ];
 
   const teams = teamEntries.filter((entry): entry is { label: string; color: 'red' | 'blue'; formation: TeamFormation } => entry !== null);

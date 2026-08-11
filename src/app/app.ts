@@ -167,11 +167,17 @@ export class App implements OnInit, OnDestroy {
       }));
     }
 
+    // Color assignment must match the team naming convention from teamBalancer:
+    //   2-team mode:  team1 = Blue Team,   team2 = Red Team
+    //   4-team mode:  team1 = Red Team A,  team2 = Red Team B,
+    //                 team3 = Blue Team A, team4 = Blue Team B
+    const isFourTeam = Boolean(formations.team3 || formations.team4);
+
     return [
-      formations.team1 ? { ...formations.team1, color: 'blue' as const } : null,
-      formations.team2 ? { ...formations.team2, color: 'red' as const } : null,
+      formations.team1 ? { ...formations.team1, color: isFourTeam ? 'red' as const : 'blue' as const } : null,
+      formations.team2 ? { ...formations.team2, color: isFourTeam ? 'red' as const : 'red' as const } : null,
       formations.team3 ? { ...formations.team3, color: 'blue' as const } : null,
-      formations.team4 ? { ...formations.team4, color: 'red' as const } : null
+      formations.team4 ? { ...formations.team4, color: 'blue' as const } : null
     ].filter((card): card is FormationCard => !!card);
   }
 
