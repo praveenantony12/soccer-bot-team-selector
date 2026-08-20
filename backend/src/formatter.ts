@@ -32,44 +32,72 @@ export function formatTeams(result: BalanceResult): string {
 
 📊 Balance Quality: ${result.quality.toUpperCase()}
 📈 Rating Difference: ${result.balance.toFixed(1)}
+👥 Mode: ${result.mode === 'two-team' ? '2 Teams' : '4 Teams'}
 
 `;
 
-  // Team 1
-  message += `🔵 *${result.team1.name}*\n`;
-  message += `⭐ Avg Rating: ${result.team1.avgRating.toFixed(1)}\n`;
-  message += `👥 Players:\n`;
-  
-  // Group by position for better readability
-  const team1ByPosition = groupPlayersByPosition(result.team1.players);
-  for (const [position, players] of Object.entries(team1ByPosition)) {
-    if (players.length > 0) {
-      const positionEmoji = getPositionEmoji(position);
-      message += `${positionEmoji} ${position.toUpperCase()}: `;
-      message += players.map(p => `${p.name} (${p.rating})`).join(', ');
+  if (result.mode === 'two-team') {
+    // Team 1
+    message += `🔵 *${result.team1.name}*\n`;
+    message += `⭐ Avg Rating: ${result.team1.avgRating.toFixed(1)}\n`;
+    message += `👥 Players:\n`;
+    
+    const team1ByPosition = groupPlayersByPosition(result.team1.players);
+    for (const [position, players] of Object.entries(team1ByPosition)) {
+      if (players.length > 0) {
+        const positionEmoji = getPositionEmoji(position);
+        message += `${positionEmoji} ${position.toUpperCase()}: `;
+        message += players.map(p => `${p.name} (${p.rating})`).join(', ');
+        message += '\n';
+      }
+    }
+
+    message += '\n';
+
+    // Team 2
+    message += `🔴 *${result.team2.name}*\n`;
+    message += `⭐ Avg Rating: ${result.team2.avgRating.toFixed(1)}\n`;
+    message += `👥 Players:\n`;
+    
+    const team2ByPosition = groupPlayersByPosition(result.team2.players);
+    for (const [position, players] of Object.entries(team2ByPosition)) {
+      if (players.length > 0) {
+        const positionEmoji = getPositionEmoji(position);
+        message += `${positionEmoji} ${position.toUpperCase()}: `;
+        message += players.map(p => `${p.name} (${p.rating})`).join(', ');
+        message += '\n';
+      }
+    }
+
+    message += `\n🏆 *Good luck to both teams!* 🏆`;
+  } else {
+    // 4 Teams
+    const teamEmojis = ['🔴', '🟠', '🔵', '🟢'];
+    const teams = [result.team1, result.team2, result.team3!, result.team4!];
+    
+    for (let i = 0; i < teams.length; i++) {
+      const team = teams[i];
+      message += `${teamEmojis[i]} *${team.name}*\n`;
+      message += `⭐ Avg Rating: ${team.avgRating.toFixed(1)}\n`;
+      message += `👥 Players:\n`;
+      
+      const teamByPosition = groupPlayersByPosition(team.players);
+      for (const [position, players] of Object.entries(teamByPosition)) {
+        if (players.length > 0) {
+          const positionEmoji = getPositionEmoji(position);
+          message += `${positionEmoji} ${position.toUpperCase()}: `;
+          message += players.map(p => `${p.name} (${p.rating})`).join(', ');
+          message += '\n';
+        }
+      }
+      
       message += '\n';
     }
+
+    message += `🏆 *Good luck to all four teams!* 🏆`;
   }
 
-  message += '\n';
-
-  // Team 2
-  message += `🔴 *${result.team2.name}*\n`;
-  message += `⭐ Avg Rating: ${result.team2.avgRating.toFixed(1)}\n`;
-  message += `👥 Players:\n`;
-  
-  const team2ByPosition = groupPlayersByPosition(result.team2.players);
-  for (const [position, players] of Object.entries(team2ByPosition)) {
-    if (players.length > 0) {
-      const positionEmoji = getPositionEmoji(position);
-      message += `${positionEmoji} ${position.toUpperCase()}: `;
-      message += players.map(p => `${p.name} (${p.rating})`).join(', ');
-      message += '\n';
-    }
-  }
-
-  message += `\n🏆 *Good luck to both teams!* 🏆
-📱 *Game starts soon!*`;
+  message += `\n📱 *Game starts soon!*`;
 
   return message;
 }

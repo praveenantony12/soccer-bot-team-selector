@@ -23,6 +23,71 @@ function computePositionBalance(teams) {
     }
     return total;
 }
+// ── Rating-balance helpers ───────────────────────────────────────────────────
+function generatePermutations(arr) {
+    if (arr.length <= 1)
+        return [arr];
+    const result = [];
+    for (let i = 0; i < arr.length; i++) {
+        const rest = [...arr.slice(0, i), ...arr.slice(i + 1)];
+        for (const perm of generatePermutations(rest)) {
+            result.push([arr[i], ...perm]);
+        }
+    }
+    return result;
+}
+function calculateRatingSpread(teams) {
+    const avgs = teams.map(t => t.avgRating);
+    return Math.max(...avgs) - Math.min(...avgs);
+}
+function optimizeFourTeams(teams) {
+    let improved = true;
+    let iterations = 0;
+    const maxIterations = 100;
+    while (improved && iterations < maxIterations) {
+        improved = false;
+        iterations++;
+        const currentSpread = calculateRatingSpread(teams);
+        let bestSwap = null;
+        let bestSpread = currentSpread;
+        for (let i = 0; i < teams.length; i++) {
+            for (let j = i + 1; j < teams.length; j++) {
+                for (let pi = 0; pi < teams[i].players.length; pi++) {
+                    for (let pj = 0; pj < teams[j].players.length; pj++) {
+                        const newTotalI = teams[i].totalRating - teams[i].players[pi].rating + teams[j].players[pj].rating;
+                        const newTotalJ = teams[j].totalRating - teams[j].players[pj].rating + teams[i].players[pi].rating;
+                        const newAvgI = newTotalI / teams[i].players.length;
+                        const newAvgJ = newTotalJ / teams[j].players.length;
+                        const newAvgs = teams.map((t, idx) => {
+                            if (idx === i)
+                                return newAvgI;
+                            if (idx === j)
+                                return newAvgJ;
+                            return t.avgRating;
+                        });
+                        const newSpread = Math.max(...newAvgs) - Math.min(...newAvgs);
+                        if (newSpread < bestSpread) {
+                            bestSpread = newSpread;
+                            bestSwap = { i, j, pi, pj };
+                        }
+                    }
+                }
+            }
+        }
+        if (bestSwap) {
+            const { i, j, pi, pj } = bestSwap;
+            const temp = teams[i].players[pi];
+            teams[i].players[pi] = teams[j].players[pj];
+            teams[j].players[pj] = temp;
+            teams[i].totalRating = teams[i].players.reduce((sum, p) => sum + p.rating, 0);
+            teams[i].avgRating = teams[i].totalRating / teams[i].players.length;
+            teams[j].totalRating = teams[j].players.reduce((sum, p) => sum + p.rating, 0);
+            teams[j].avgRating = teams[j].totalRating / teams[j].players.length;
+            improved = true;
+        }
+    }
+}
+// ── End rating-balance helpers ───────────────────────────────────────────────
 function sortPlayers(players) {
     return [...players].sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -101,33 +166,47 @@ function getTeamSizes(playerCount) {
 function buildFourTeamCandidate(players) {
     const sizes = getTeamSizes(players.length);
     const teams = sizes.map(() => ({ players: [], totalRating: 0, avgRating: 0 }));
-    const orderedPlayers = shuffleArray([...players]).sort((a, b) => b.rating - a.rating);
-    for (const player of orderedPlayers) {
-        let bestIndex = -1;
-        let bestScore = Number.POSITIVE_INFINITY;
-        for (let index = 0; index < teams.length; index++) {
-            const team = teams[index];
-            if (team.players.length >= sizes[index])
-                continue;
-            const projectedAvg = (team.totalRating + player.rating) / (team.players.length + 1);
-            const positionPenalty = team.players.filter(entry => getPreferredZone(entry) === getPreferredZone(player)).length * 0.35;
-            const sizePenalty = team.players.length / Math.max(1, sizes[index]);
-            const score = projectedAvg + positionPenalty + sizePenalty;
-            if (score < bestScore) {
-                bestScore = score;
-                bestIndex = index;
+    // Sort players by rating (highest to lowest)
+    const orderedPlayers = [...players].sort((a, b) => b.rating - a.rating);
+    // Group players into tiers of 4 (one for each team)
+    const tiers = [];
+    for (let i = 0; i < orderedPlayers.length; i += 4) {
+        tiers.push(orderedPlayers.slice(i, i + 4));
+    }
+    // For each tier, try all permutations and pick among the top-K
+    // This ensures each team gets one player from every skill tier,
+    // preventing weak players from stacking in a single team.
+    for (const tier of tiers) {
+        const permutations = generatePermutations(tier);
+        const scoredPermutations = [];
+        for (const perm of permutations) {
+            const projectedAvgs = teams.map((team, idx) => {
+                const player = perm[idx];
+                if (!player)
+                    return team.avgRating;
+                const newTotal = team.totalRating + player.rating;
+                const newCount = team.players.length + 1;
+                return newTotal / newCount;
+            });
+            const spread = Math.max(...projectedAvgs) - Math.min(...projectedAvgs);
+            scoredPermutations.push({ perm, score: spread });
+        }
+        scoredPermutations.sort((a, b) => a.score - b.score);
+        // Randomly pick among the top 3 permutations for variety across attempts
+        const topK = Math.min(3, scoredPermutations.length);
+        const bestPermutation = scoredPermutations[Math.floor(Math.random() * topK)].perm;
+        // Assign the chosen permutation
+        for (let i = 0; i < bestPermutation.length; i++) {
+            if (i < teams.length) {
+                const team = teams[i];
+                team.players.push(bestPermutation[i]);
+                team.totalRating += bestPermutation[i].rating;
+                team.avgRating = team.players.length ? team.totalRating / team.players.length : 0;
             }
         }
-        if (bestIndex === -1) {
-            bestIndex = teams.findIndex(team => team.players.length < sizes[teams.indexOf(team)]);
-        }
-        if (bestIndex >= 0) {
-            const team = teams[bestIndex];
-            team.players.push(player);
-            team.totalRating += player.rating;
-            team.avgRating = team.players.length ? team.totalRating / team.players.length : 0;
-        }
     }
+    // Swap optimization pass to fine-tune balance
+    optimizeFourTeams(teams);
     const namedTeams = [
         buildTeamSummary('Red Team A', teams[0].players),
         buildTeamSummary('Red Team B', teams[1].players),
@@ -141,13 +220,14 @@ function buildFourTeamCandidate(players) {
     };
 }
 function chooseBestCandidate(candidates) {
-    candidates.sort((a, b) => a.positionBalance !== b.positionBalance
-        ? a.positionBalance - b.positionBalance
-        : a.ratingBalance - b.ratingBalance);
-    const bestPositionBalance = candidates[0].positionBalance;
-    const positionFair = candidates.filter(candidate => candidate.positionBalance === bestPositionBalance);
-    const topN = Math.min(5, positionFair.length);
-    return positionFair[Math.floor(Math.random() * topN)] || candidates[0];
+    // Prioritize rating balance first, then position balance as tiebreaker
+    candidates.sort((a, b) => a.ratingBalance !== b.ratingBalance
+        ? a.ratingBalance - b.ratingBalance
+        : a.positionBalance - b.positionBalance);
+    const bestRatingBalance = candidates[0].ratingBalance;
+    const ratingFair = candidates.filter(candidate => candidate.ratingBalance === bestRatingBalance);
+    const topN = Math.min(5, ratingFair.length);
+    return ratingFair[Math.floor(Math.random() * topN)] || candidates[0];
 }
 function applyCaptains(teams) {
     return teams.map(team => {
@@ -192,7 +272,8 @@ function balanceTeams(players) {
             quality
         };
     }
-    const attemptCount = Math.max(40, players.length * 4);
+    // Four-team mode: run multiple attempts and pick the best candidate
+    const attemptCount = Math.max(30, players.length * 2);
     const candidates = [];
     for (let attempt = 0; attempt < attemptCount; attempt++) {
         candidates.push(buildFourTeamCandidate(players));
