@@ -216,45 +216,124 @@ function getTeamSizes(playerCount: number): number[] {
 
 function buildFourTeamCandidate(players: Player[]): Candidate {
   const sizes = getTeamSizes(players.length);
-  const teams = sizes.map(() => ({ players: [] as Player[], totalRating: 0, avgRating: 0 }));
-
-  // Calculate target total rating for each team
-  const totalRating = players.reduce((sum, p) => sum + p.rating, 0);
-  const targetRating = totalRating / 4;
-
-  // Sort players by rating (highest to lowest)
+  
+  // Use genetic algorithm to minimize total rating spread
+  const populationSize = 100;
+  const generations = 200;
+  const mutationRate = 0.15;
+  
+  // Initialize population with snake draft as base
+  let population: Player[][][] = [];
+  
+  // Add snake draft solution
+  const snakeDraft: Player[][] = [[], [], [], []];
   const orderedPlayers = [...players].sort((a, b) => b.rating - a.rating);
-
-  // Greedy assignment with target rating constraint
+  let direction = 1;
+  let teamIndex = 0;
   for (const player of orderedPlayers) {
-    let bestTeamIndex = 0;
-    let bestScore = Infinity;
-
-    for (let i = 0; i < teams.length; i++) {
-      const team = teams[i];
-      if (team.players.length >= sizes[i]) continue;
-
-      const newTotal = team.totalRating + player.rating;
-      const deviationFromTarget = Math.abs(newTotal - targetRating);
-      const sizePenalty = (team.players.length / sizes[i]) * 2; // Prefer filling teams evenly
-      const score = deviationFromTarget + sizePenalty;
-
-      if (score < bestScore) {
-        bestScore = score;
-        bestTeamIndex = i;
-      }
+    if (snakeDraft[teamIndex].length < sizes[teamIndex]) {
+      snakeDraft[teamIndex].push(player);
+    } else {
+      teamIndex = (teamIndex + 1) % 4;
+      snakeDraft[teamIndex].push(player);
     }
-
-    if (bestTeamIndex >= 0) {
-      const team = teams[bestTeamIndex];
-      team.players.push(player);
-      team.totalRating += player.rating;
-      team.avgRating = team.players.length ? team.totalRating / team.players.length : 0;
+    teamIndex += direction;
+    if (teamIndex >= 4) {
+      teamIndex = 3;
+      direction = -1;
+    } else if (teamIndex < 0) {
+      teamIndex = 0;
+      direction = 1;
     }
   }
-
-  // Swap optimization pass to fine-tune balance
-  optimizeFourTeams(teams);
+  population.push(snakeDraft);
+  
+  // Add random variations
+  for (let i = 1; i < populationSize; i++) {
+    const shuffled = shuffleArray([...players]);
+    const assignment: Player[][] = [[], [], [], []];
+    let teamIdx = 0;
+    for (const player of shuffled) {
+      if (assignment[teamIdx].length < sizes[teamIdx]) {
+        assignment[teamIdx].push(player);
+      } else {
+        teamIdx = (teamIdx + 1) % 4;
+        assignment[teamIdx].push(player);
+      }
+    }
+    population.push(assignment);
+  }
+  
+  // Fitness function: minimize total rating spread
+  function fitness(assignment: Player[][]): number {
+    const totals = assignment.map(team => team.reduce((sum, p) => sum + p.rating, 0));
+    const spread = Math.max(...totals) - Math.min(...totals);
+    return spread; // Lower is better
+  }
+  
+  // Genetic algorithm evolution
+  for (let gen = 0; gen < generations; gen++) {
+    // Sort by fitness
+    population.sort((a, b) => fitness(a) - fitness(b));
+    
+    // Keep top 10%
+    const survivors = population.slice(0, Math.floor(populationSize * 0.1));
+    
+    // Create new population through crossover and mutation
+    const newPopulation: Player[][][] = [...survivors];
+    
+    while (newPopulation.length < populationSize) {
+      // Select two parents from survivors
+      const parent1 = survivors[Math.floor(Math.random() * survivors.length)];
+      const parent2 = survivors[Math.floor(Math.random() * survivors.length)];
+      
+      // Crossover: combine teams from both parents
+      const child: Player[][] = [[], [], [], []];
+      for (let i = 0; i < 4; i++) {
+        child[i] = Math.random() < 0.5 ? [...parent1[i]] : [...parent2[i]];
+      }
+      
+      // Mutation: swap random players between teams
+      if (Math.random() < mutationRate) {
+        const team1 = Math.floor(Math.random() * 4);
+        const team2 = Math.floor(Math.random() * 4);
+        if (child[team1].length > 0 && child[team2].length > 0) {
+          const idx1 = Math.floor(Math.random() * child[team1].length);
+          const idx2 = Math.floor(Math.random() * child[team2].length);
+          [child[team1][idx1], child[team2][idx2]] = [child[team2][idx2], child[team1][idx1]];
+        }
+      }
+      
+      // Ensure team sizes are correct
+      const allPlayers = child.flat();
+      const shuffled = shuffleArray(allPlayers);
+      const corrected: Player[][] = [[], [], [], []];
+      let teamIdx = 0;
+      for (const player of shuffled) {
+        if (corrected[teamIdx].length < sizes[teamIdx]) {
+          corrected[teamIdx].push(player);
+        } else {
+          teamIdx = (teamIdx + 1) % 4;
+          corrected[teamIdx].push(player);
+        }
+      }
+      
+      newPopulation.push(corrected);
+    }
+    
+    population = newPopulation;
+  }
+  
+  // Get best solution
+  population.sort((a, b) => fitness(a) - fitness(b));
+  const bestAssignment = population[0];
+  
+  // Build teams from best assignment
+  const teams = bestAssignment.map((teamPlayers, idx) => ({
+    players: teamPlayers,
+    totalRating: teamPlayers.reduce((sum, p) => sum + p.rating, 0),
+    avgRating: teamPlayers.reduce((sum, p) => sum + p.rating, 0) / teamPlayers.length
+  }));
 
   const namedTeams = [
     buildTeamSummary('Red Team A', teams[0].players),
@@ -265,7 +344,7 @@ function buildFourTeamCandidate(players: Player[]): Candidate {
 
   return {
     teams: namedTeams,
-    ratingBalance: Math.max(...namedTeams.map(team => team.avgRating)) - Math.min(...namedTeams.map(team => team.avgRating)),
+    ratingBalance: Math.max(...namedTeams.map(team => team.totalRating)) - Math.min(...namedTeams.map(team => team.totalRating)),
     positionBalance: computePositionBalance(namedTeams)
   };
 }
