@@ -469,7 +469,7 @@ const POSITION_ZONE = {
 // GK(0) ↔ Defender(1) ↔ Midfielder(2) ↔ Forward(3)
 const ZONE_ORDER = ['goalkeeper', 'defender', 'midfielder', 'forward'];
 // Score per proximity distance: same zone, 1-step away, 2-steps, 3-steps
-// Gaps are wide enough that even a max-rated player (rating 20 → +40) cannot
+// Gaps are wide enough that even a max-rated player (rating 22 → +44) cannot
 // override a closer-zone assignment.
 const PROXIMITY_SCORES = [200, 100, 40, 10];
 /**
@@ -577,7 +577,7 @@ function selectBestFormation(players) {
  *
  * Preference penalties:  1st → 0 pts,  2nd → −30 pts,  3rd → −60 pts
  * Proximity scores:      same zone → 200,  1-step → 100,  2-step → 40,  3-step → 10
- * Rating bonus:          rating × 2 (max ~40 pts — never overrides zone tier)
+ * Rating bonus:          rating × 2 (max ~44 pts — never overrides zone tier)
  *
  * Returns −1 if NO preferred position allows the slot's zone (disqualified).
  * The greedy loop uses bestScore = −1 as its initial value, so disqualified

@@ -92,8 +92,8 @@ cron.schedule("*/2 * * * *", async () => {
   const names = persistentStore.getPlayers();
   console.log(`Current players: ${names.length}`);
 
-  // Early formation: form teams immediately if we have 28+ players
-  if (names.length >= 28) {
+  // Early formation: form teams immediately if we have 32+ players
+  if (names.length >= 32) {
     console.log(`🚀 Early team formation triggered with ${names.length} players`);
     await formAndSendTeams(names);
     return;

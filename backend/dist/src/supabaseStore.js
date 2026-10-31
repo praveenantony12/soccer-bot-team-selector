@@ -147,6 +147,8 @@ class SupabasePersistentStore {
             if (error)
                 throw error;
             console.log('🆕 Created new daily data entry');
+            // Self-healing cleanup: works even if the scheduled job never ran (e.g. host was asleep)
+            this.purgeOldData().catch(err => console.error('⚠️ Old-data purge failed (non-fatal):', err?.message ?? err));
             // Convert Supabase snake_case to camelCase for consistency
             return {
                 date: data.date,
@@ -361,6 +363,22 @@ class SupabasePersistentStore {
             delete data.player_tokens[name];
             await this.saveData({ player_tokens: data.player_tokens });
         }
+    }
+    // Only today's row is ever needed; delete everything dated before today (TEAM_TIMEZONE).
+    async purgeOldData() {
+        const supabase = await this.getSupabase();
+        const today = this.getTodayKey();
+        const { data, error } = await supabase
+            .from('daily_data')
+            .delete()
+            .lt('date', today);
+        if (error)
+            throw error;
+        const deleted = Array.isArray(data) ? data.length : 0;
+        if (deleted > 0) {
+            console.log(`🧹 Purged ${deleted} old daily_data row(s) before ${today}`);
+        }
+        return deleted;
     }
     async resetForNewDay() {
         const today = this.getTodayKey();

@@ -23,7 +23,7 @@ try {
 const { persistentStore } = require('./dist/src/persistentStore');
 const { supabaseStore } = require('./dist/src/supabaseStore');
 const { getAllPlayerNames, getPlayerByName } = require('./dist/src/players');
-const { balanceTeams } = require('./dist/src/teamBalancer');
+const { balanceTeams, validateTeamAssignment } = require('./dist/src/teamBalancer');
 const { generateFormations } = require('./dist/src/formationGenerator');
 
 const app = express();
@@ -183,15 +183,15 @@ function buildMatchSchedule(teams) {
     {
       title: 'Slot 1 (8:30 AM - 9:15 AM)',
       matches: [
-        `${teamA.captainName}'s ${teamA.name} vs ${teamC.captainName}'s ${teamC.name} (Lacrosse Post)`,
-        `${teamB.captainName}'s ${teamB.name} vs ${teamD.captainName}'s ${teamD.name} (Soccer Post)`
+        `${teamA.captainName}'s ${teamA.name} vs ${teamC.captainName}'s ${teamC.name}`,
+        `${teamB.captainName}'s ${teamB.name} vs ${teamD.captainName}'s ${teamD.name}`
       ]
     },
     {
       title: 'Slot 2 (9:15 AM - 10:00 AM)',
       matches: [
-        `${teamA.captainName}'s ${teamA.name} vs ${teamD.captainName}'s ${teamD.name} (Lacrosse Post)`,
-        `${teamB.captainName}'s ${teamB.name} vs ${teamC.captainName}'s ${teamC.name} (Soccer Post)`
+        `${teamA.captainName}'s ${teamA.name} vs ${teamD.captainName}'s ${teamD.name}`,
+        `${teamB.captainName}'s ${teamB.name} vs ${teamC.captainName}'s ${teamC.name}`
       ]
     }
   ];
@@ -239,13 +239,20 @@ function buildUiTeamPayload(result) {
 }
 
 function buildPlayers(names) {
-  return names.map(name => {
-    const player = getPlayerByName(name);
-    if (!player) {
-      return { name, rating: 5.0, position: 'player' };
+  // One entry per player: names differing only by case resolve to the same DB player
+  const seen = new Set();
+  const players = [];
+  for (const name of names) {
+    const player = getPlayerByName(name) || { name, rating: 5.0, position: 'player' };
+    const key = player.name.toLowerCase();
+    if (seen.has(key)) {
+      console.warn(`⚠️ Ignoring duplicate player entry: ${name}`);
+      continue;
     }
-    return player;
-  });
+    seen.add(key);
+    players.push(player);
+  }
+  return players;
 }
 
 async function generateTeamsForToday(source = 'manual') {
@@ -269,7 +276,13 @@ async function generateTeamsForToday(source = 'manual') {
   }
 
   const players = buildPlayers(names);
-  const result = balanceTeams(players);
+  let result;
+  try {
+    result = balanceTeams(players);
+  } catch (e) {
+    console.error('❌ Team balancing failed:', e.message);
+    return { ok: false, error: 'Team generation failed. Please try again.', count: names.length };
+  }
   
   const formationPlayers = result.mode === 'four-team'
     ? [result.team1.players, result.team2.players, result.team3.players, result.team4.players]
@@ -303,6 +316,17 @@ async function generateTeamsForToday(source = 'manual') {
     generatedAt: new Date().toISOString(),
     ...buildUiTeamPayload(result)
   };
+
+  // Last line of defence: what we persist and show must contain every player exactly once
+  const finalTeams = [normalized.team1, normalized.team2, normalized.team3, normalized.team4].filter(Boolean);
+  const problems = [
+    ...validateTeamAssignment(players, finalTeams),
+    ...validateTeamAssignment(players, normalized.teams || [])
+  ];
+  if (problems.length > 0) {
+    console.error(`❌ Refusing to save invalid teams: ${problems.join(', ')}`);
+    return { ok: false, error: 'Team generation produced an invalid result. Please try again.', count: names.length };
+  }
 
   await Promise.resolve(store.saveTeams(normalized));
   await Promise.resolve(store.clearPlayers());
@@ -634,6 +658,23 @@ cron.schedule(TEAM_GENERATION_CRON, async () => {
   console.log('✅ Teams generated successfully via cron');
 }, { timezone: 'UTC' });
 
+// 🧹 Only today's data is relevant: purge all earlier daily_data rows.
+// Runs at startup (clears any backlog), shortly after local midnight, and whenever a new
+// day's row is created (see supabaseStore.createNewDay) so a sleeping host still self-cleans.
+const CLEANUP_CRON = process.env.CLEANUP_CRON || '5 0 * * *';
+
+async function purgeOldDailyData(trigger) {
+  if (activeStore !== supabaseStore) return;
+  try {
+    const deleted = await supabaseStore.purgeOldData();
+    console.log(`🧹 Cleanup (${trigger}): removed ${deleted} old row(s)`);
+  } catch (e) {
+    console.error(`⚠️ Cleanup (${trigger}) failed (non-fatal):`, e.message);
+  }
+}
+
+cron.schedule(CLEANUP_CRON, () => purgeOldDailyData('cron'), { timezone: TIMEZONE });
+
 // Debug: Check current time vs cutoff every minute
 setInterval(() => {
   const now = new Date();
@@ -649,6 +690,7 @@ setInterval(() => {
 
 // Initialise the store, then start listening
 initActiveStore().then(() => {
+  purgeOldDailyData('startup');
   app.listen(PORT, () => {
     console.log(`🚀 Unified Soccer Bot running on port ${PORT}`);
     console.log(`⚽ Team generation cron: ${TEAM_GENERATION_CRON} (${TIMEZONE})`);

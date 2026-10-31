@@ -10,14 +10,14 @@ exports.playersDB = [
         firstPreferredPosition: 'midfielder',
         secondPreferredPosition: 'defender',
         thirdPreferredPosition: 'goalkeeper',
-        rating: 12,
+        rating: 13,
     },
     {
         name: 'Abhiroop',
         firstPreferredPosition: 'defender',
         secondPreferredPosition: 'forward',
         thirdPreferredPosition: 'midfielder',
-        rating: 11,
+        rating: 10,
     },
     {
         name: 'Aditya',
@@ -31,7 +31,7 @@ exports.playersDB = [
         firstPreferredPosition: 'defender',
         secondPreferredPosition: 'midfielder',
         thirdPreferredPosition: 'goalkeeper',
-        rating: 14,
+        rating: 15,
     },
     {
         name: 'Akul',
@@ -45,7 +45,7 @@ exports.playersDB = [
         firstPreferredPosition: 'defender',
         secondPreferredPosition: 'forward',
         thirdPreferredPosition: 'midfielder',
-        rating: 5,
+        rating: 4,
     },
     {
         name: 'Arjun',
@@ -94,7 +94,7 @@ exports.playersDB = [
         firstPreferredPosition: 'forward',
         secondPreferredPosition: 'midfielder',
         thirdPreferredPosition: 'goalkeeper',
-        rating: 4,
+        rating: 3,
     },
     {
         name: 'Don',
@@ -136,14 +136,14 @@ exports.playersDB = [
         firstPreferredPosition: 'goalkeeper',
         secondPreferredPosition: 'defender',
         thirdPreferredPosition: 'midfielder',
-        rating: 9,
+        rating: 8,
     },
     {
         name: 'Jayesh',
         firstPreferredPosition: 'midfielder',
         secondPreferredPosition: 'forward',
         thirdPreferredPosition: 'defender',
-        rating: 13,
+        rating: 14,
     },
     {
         name: 'Julien',
@@ -199,7 +199,7 @@ exports.playersDB = [
         firstPreferredPosition: 'goalkeeper',
         secondPreferredPosition: 'forward',
         thirdPreferredPosition: 'defender',
-        rating: 3,
+        rating: 2,
     },
     {
         name: 'Manoj B',
@@ -248,7 +248,7 @@ exports.playersDB = [
         firstPreferredPosition: 'defender',
         secondPreferredPosition: 'goalkeeper',
         thirdPreferredPosition: 'midfielder',
-        rating: 4,
+        rating: 3,
     },
     {
         name: 'Nikhil',
@@ -269,7 +269,7 @@ exports.playersDB = [
         firstPreferredPosition: 'defender',
         secondPreferredPosition: 'midfielder',
         thirdPreferredPosition: 'goalkeeper',
-        rating: 13,
+        rating: 12,
     },
     {
         name: 'Praneel',
@@ -318,7 +318,7 @@ exports.playersDB = [
         firstPreferredPosition: 'defender',
         secondPreferredPosition: 'forward',
         thirdPreferredPosition: 'midfielder',
-        rating: 11,
+        rating: 10,
     },
     {
         name: 'Remilin',
@@ -332,7 +332,7 @@ exports.playersDB = [
         firstPreferredPosition: 'defender',
         secondPreferredPosition: 'midfielder',
         thirdPreferredPosition: 'goalkeeper',
-        rating: 9,
+        rating: 11,
     },
     {
         name: 'Sajith',
@@ -346,7 +346,7 @@ exports.playersDB = [
         firstPreferredPosition: 'goalkeeper',
         secondPreferredPosition: 'defender',
         thirdPreferredPosition: 'forward',
-        rating: 5,
+        rating: 4,
     },
     {
         name: 'Saran',
@@ -444,7 +444,7 @@ exports.playersDB = [
         firstPreferredPosition: 'defender',
         secondPreferredPosition: 'goalkeeper',
         thirdPreferredPosition: 'midfielder',
-        rating: 11,
+        rating: 9,
     },
     {
         name: 'Vinu',

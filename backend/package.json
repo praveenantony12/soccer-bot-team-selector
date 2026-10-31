@@ -8,6 +8,7 @@
     "dev:unified": "ts-node-dev --respawn --transpile-only unified-server.ts",
     "build": "tsc",
     "build:unified": "tsc",
+    "test": "tsc && node --test test/*.test.js",
     "start": "node unified-server-cjs.js",
     "start:unified": "node unified-server-cjs.js"
   },

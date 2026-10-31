@@ -19,6 +19,9 @@ export interface BalanceResult {
   quality: 'excellent' | 'good' | 'poor';
 }
 
+// At or above this many players the game is split into four teams.
+export const FOUR_TEAM_MIN_PLAYERS = 32;
+
 type Candidate = {
   teams: Team[];
   ratingBalance: number;
@@ -204,7 +207,7 @@ function buildPositionAwareCandidate(players: Player[]): Candidate {
 }
 
 function getTeamSizes(playerCount: number): number[] {
-  if (playerCount <= 27) {
+  if (playerCount < FOUR_TEAM_MIN_PLAYERS) {
     const split = Math.floor(playerCount / 2);
     return [split, playerCount - split];
   }
@@ -214,151 +217,50 @@ function getTeamSizes(playerCount: number): number[] {
   return Array.from({ length: 4 }, (_, index) => base + (index < remainder ? 1 : 0));
 }
 
+// Players are only ever partitioned once (shuffle + slice) and then moved by
+// pairwise swaps, so every player stays in exactly one team by construction.
 function buildFourTeamCandidate(players: Player[]): Candidate {
   const sizes = getTeamSizes(players.length);
-  
-  // Use genetic algorithm to minimize total rating spread
-  const populationSize = 100;
-  const generations = 200;
-  const mutationRate = 0.15;
-  
-  // Initialize population with snake draft as base
-  let population: Player[][][] = [];
-  
-  // Add snake draft solution
-  const snakeDraft: Player[][] = [[], [], [], []];
-  const orderedPlayers = [...players].sort((a, b) => b.rating - a.rating);
-  let direction = 1;
-  let teamIndex = 0;
-  for (const player of orderedPlayers) {
-    if (snakeDraft[teamIndex].length < sizes[teamIndex]) {
-      snakeDraft[teamIndex].push(player);
-    } else {
-      teamIndex = (teamIndex + 1) % 4;
-      snakeDraft[teamIndex].push(player);
-    }
-    teamIndex += direction;
-    if (teamIndex >= 4) {
-      teamIndex = 3;
-      direction = -1;
-    } else if (teamIndex < 0) {
-      teamIndex = 0;
-      direction = 1;
-    }
-  }
-  population.push(snakeDraft);
-  
-  // Add random variations
-  for (let i = 1; i < populationSize; i++) {
-    const shuffled = shuffleArray([...players]);
-    const assignment: Player[][] = [[], [], [], []];
-    let teamIdx = 0;
-    for (const player of shuffled) {
-      if (assignment[teamIdx].length < sizes[teamIdx]) {
-        assignment[teamIdx].push(player);
-      } else {
-        teamIdx = (teamIdx + 1) % 4;
-        assignment[teamIdx].push(player);
-      }
-    }
-    population.push(assignment);
-  }
-  
-  // Fitness function: minimize total rating spread
-  function fitness(assignment: Player[][]): number {
-    const totals = assignment.map(team => team.reduce((sum, p) => sum + p.rating, 0));
-    const spread = Math.max(...totals) - Math.min(...totals);
-    return spread; // Lower is better
-  }
-  
-  // Genetic algorithm evolution
-  for (let gen = 0; gen < generations; gen++) {
-    // Sort by fitness
-    population.sort((a, b) => fitness(a) - fitness(b));
-    
-    // Keep top 10%
-    const survivors = population.slice(0, Math.floor(populationSize * 0.1));
-    
-    // Create new population through crossover and mutation
-    const newPopulation: Player[][][] = [...survivors];
-    
-    while (newPopulation.length < populationSize) {
-      // Select two parents from survivors
-      const parent1 = survivors[Math.floor(Math.random() * survivors.length)];
-      const parent2 = survivors[Math.floor(Math.random() * survivors.length)];
-      
-      // Crossover: combine teams from both parents
-      const child: Player[][] = [[], [], [], []];
-      for (let i = 0; i < 4; i++) {
-        child[i] = Math.random() < 0.5 ? [...parent1[i]] : [...parent2[i]];
-      }
-      
-      // Mutation: swap random players between teams
-      if (Math.random() < mutationRate) {
-        const team1 = Math.floor(Math.random() * 4);
-        const team2 = Math.floor(Math.random() * 4);
-        if (child[team1].length > 0 && child[team2].length > 0) {
-          const idx1 = Math.floor(Math.random() * child[team1].length);
-          const idx2 = Math.floor(Math.random() * child[team2].length);
-          [child[team1][idx1], child[team2][idx2]] = [child[team2][idx2], child[team1][idx1]];
-        }
-      }
-      
-      // Ensure team sizes are correct
-      const allPlayers = child.flat();
-      const shuffled = shuffleArray(allPlayers);
-      const corrected: Player[][] = [[], [], [], []];
-      let teamIdx = 0;
-      for (const player of shuffled) {
-        if (corrected[teamIdx].length < sizes[teamIdx]) {
-          corrected[teamIdx].push(player);
-        } else {
-          teamIdx = (teamIdx + 1) % 4;
-          corrected[teamIdx].push(player);
-        }
-      }
-      
-      newPopulation.push(corrected);
-    }
-    
-    population = newPopulation;
-  }
-  
-  // Get best solution
-  population.sort((a, b) => fitness(a) - fitness(b));
-  const bestAssignment = population[0];
-  
-  // Build teams from best assignment
-  const teams = bestAssignment.map((teamPlayers, idx) => ({
-    players: teamPlayers,
-    totalRating: teamPlayers.reduce((sum, p) => sum + p.rating, 0),
-    avgRating: teamPlayers.reduce((sum, p) => sum + p.rating, 0) / teamPlayers.length
-  }));
+  const shuffled = shuffleArray(players);
+
+  let offset = 0;
+  const working = sizes.map(size => {
+    const group = shuffled.slice(offset, offset + size);
+    offset += size;
+    const totalRating = group.reduce((sum, p) => sum + p.rating, 0);
+    return { players: group, totalRating, avgRating: group.length ? totalRating / group.length : 0 };
+  });
+
+  optimizeFourTeams(working);
 
   const namedTeams = [
-    buildTeamSummary('Red Team A', teams[0].players),
-    buildTeamSummary('Red Team B', teams[1].players),
-    buildTeamSummary('Blue Team A', teams[2].players),
-    buildTeamSummary('Blue Team B', teams[3].players)
+    buildTeamSummary('Red Team A', working[0].players),
+    buildTeamSummary('Red Team B', working[1].players),
+    buildTeamSummary('Blue Team A', working[2].players),
+    buildTeamSummary('Blue Team B', working[3].players)
   ];
 
   return {
     teams: namedTeams,
-    ratingBalance: Math.max(...namedTeams.map(team => team.totalRating)) - Math.min(...namedTeams.map(team => team.totalRating)),
+    ratingBalance: calculateRatingSpread(namedTeams),
     positionBalance: computePositionBalance(namedTeams)
   };
 }
 
+const BALANCE_EPSILON = 1e-9;
+
 function chooseBestCandidate(candidates: Candidate[]): Candidate {
   // Prioritize rating balance first, then position balance as tiebreaker
   candidates.sort((a, b) =>
-    a.ratingBalance !== b.ratingBalance
+    Math.abs(a.ratingBalance - b.ratingBalance) > BALANCE_EPSILON
       ? a.ratingBalance - b.ratingBalance
       : a.positionBalance - b.positionBalance
   );
 
   const bestRatingBalance = candidates[0].ratingBalance;
-  const ratingFair = candidates.filter(candidate => candidate.ratingBalance === bestRatingBalance);
+  const ratingFair = candidates.filter(
+    candidate => candidate.ratingBalance - bestRatingBalance <= BALANCE_EPSILON
+  );
   const topN = Math.min(5, ratingFair.length);
   return ratingFair[Math.floor(Math.random() * topN)] || candidates[0];
 }
@@ -373,12 +275,60 @@ function applyCaptains(teams: Team[]): Team[] {
   });
 }
 
+type NamedGroup = { players: Array<{ name: string }> };
+
+/**
+ * Checks that every input player appears exactly once across the teams.
+ * Returns a list of problems (empty when the assignment is valid).
+ */
+export function validateTeamAssignment(
+  players: Array<{ name: string }>,
+  teams: NamedGroup[]
+): string[] {
+  const countNames = (list: Array<{ name: string }>) => {
+    const counts = new Map<string, number>();
+    for (const p of list) counts.set(p.name, (counts.get(p.name) || 0) + 1);
+    return counts;
+  };
+
+  const expected = countNames(players);
+  const actual = countNames(teams.flatMap(team => team.players));
+  const problems: string[] = [];
+
+  for (const [name, count] of expected) {
+    const got = actual.get(name) || 0;
+    if (got === 0) problems.push(`missing: ${name}`);
+    else if (got > count) problems.push(`duplicated: ${name} (x${got})`);
+  }
+  for (const name of actual.keys()) {
+    if (!expected.has(name)) problems.push(`unexpected: ${name}`);
+  }
+
+  return problems;
+}
+
+const MAX_BALANCE_ATTEMPTS = 5;
+
+// Never return a result that drops or duplicates a player; retry, then fail loudly.
 export function balanceTeams(players: Player[]): BalanceResult {
+  let problems: string[] = [];
+
+  for (let attempt = 1; attempt <= MAX_BALANCE_ATTEMPTS; attempt++) {
+    const result = buildBalanceResult(players);
+    problems = validateTeamAssignment(players, result.teams);
+    if (problems.length === 0) return result;
+    console.error(`❌ Invalid team assignment (attempt ${attempt}/${MAX_BALANCE_ATTEMPTS}): ${problems.join(', ')}`);
+  }
+
+  throw new Error(`Team balancing produced an invalid assignment: ${problems.join(', ')}`);
+}
+
+function buildBalanceResult(players: Player[]): BalanceResult {
   if (players.length < 2) {
     throw new Error('Need at least 2 players to form teams');
   }
 
-  if (players.length <= 27) {
+  if (players.length < FOUR_TEAM_MIN_PLAYERS) {
     const attemptCount = Math.max(50, players.length * 5);
     const candidates: Candidate[] = [];
 

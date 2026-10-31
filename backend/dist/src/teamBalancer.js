@@ -1,6 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.FOUR_TEAM_MIN_PLAYERS = void 0;
+exports.validateTeamAssignment = validateTeamAssignment;
 exports.balanceTeams = balanceTeams;
+// At or above this many players the game is split into four teams.
+exports.FOUR_TEAM_MIN_PLAYERS = 32;
 function shuffleArray(arr) {
     const list = [...arr];
     for (let i = list.length - 1; i > 0; i--) {
@@ -155,7 +159,7 @@ function buildPositionAwareCandidate(players) {
     };
 }
 function getTeamSizes(playerCount) {
-    if (playerCount <= 27) {
+    if (playerCount < exports.FOUR_TEAM_MIN_PLAYERS) {
         const split = Math.floor(playerCount / 2);
         return [split, playerCount - split];
     }
@@ -163,69 +167,39 @@ function getTeamSizes(playerCount) {
     const remainder = playerCount % 4;
     return Array.from({ length: 4 }, (_, index) => base + (index < remainder ? 1 : 0));
 }
+// Players are only ever partitioned once (shuffle + slice) and then moved by
+// pairwise swaps, so every player stays in exactly one team by construction.
 function buildFourTeamCandidate(players) {
     const sizes = getTeamSizes(players.length);
-    const teams = sizes.map(() => ({ players: [], totalRating: 0, avgRating: 0 }));
-    // Sort players by rating (highest to lowest)
-    const orderedPlayers = [...players].sort((a, b) => b.rating - a.rating);
-    // Group players into tiers of 4 (one for each team)
-    const tiers = [];
-    for (let i = 0; i < orderedPlayers.length; i += 4) {
-        tiers.push(orderedPlayers.slice(i, i + 4));
-    }
-    // For each tier, try all permutations and pick among the top-K
-    // This ensures each team gets one player from every skill tier,
-    // preventing weak players from stacking in a single team.
-    for (const tier of tiers) {
-        const permutations = generatePermutations(tier);
-        const scoredPermutations = [];
-        for (const perm of permutations) {
-            const projectedAvgs = teams.map((team, idx) => {
-                const player = perm[idx];
-                if (!player)
-                    return team.avgRating;
-                const newTotal = team.totalRating + player.rating;
-                const newCount = team.players.length + 1;
-                return newTotal / newCount;
-            });
-            const spread = Math.max(...projectedAvgs) - Math.min(...projectedAvgs);
-            scoredPermutations.push({ perm, score: spread });
-        }
-        scoredPermutations.sort((a, b) => a.score - b.score);
-        // Randomly pick among the top 3 permutations for variety across attempts
-        const topK = Math.min(3, scoredPermutations.length);
-        const bestPermutation = scoredPermutations[Math.floor(Math.random() * topK)].perm;
-        // Assign the chosen permutation
-        for (let i = 0; i < bestPermutation.length; i++) {
-            if (i < teams.length) {
-                const team = teams[i];
-                team.players.push(bestPermutation[i]);
-                team.totalRating += bestPermutation[i].rating;
-                team.avgRating = team.players.length ? team.totalRating / team.players.length : 0;
-            }
-        }
-    }
-    // Swap optimization pass to fine-tune balance
-    optimizeFourTeams(teams);
+    const shuffled = shuffleArray(players);
+    let offset = 0;
+    const working = sizes.map(size => {
+        const group = shuffled.slice(offset, offset + size);
+        offset += size;
+        const totalRating = group.reduce((sum, p) => sum + p.rating, 0);
+        return { players: group, totalRating, avgRating: group.length ? totalRating / group.length : 0 };
+    });
+    optimizeFourTeams(working);
     const namedTeams = [
-        buildTeamSummary('Red Team A', teams[0].players),
-        buildTeamSummary('Red Team B', teams[1].players),
-        buildTeamSummary('Blue Team A', teams[2].players),
-        buildTeamSummary('Blue Team B', teams[3].players)
+        buildTeamSummary('Red Team A', working[0].players),
+        buildTeamSummary('Red Team B', working[1].players),
+        buildTeamSummary('Blue Team A', working[2].players),
+        buildTeamSummary('Blue Team B', working[3].players)
     ];
     return {
         teams: namedTeams,
-        ratingBalance: Math.max(...namedTeams.map(team => team.avgRating)) - Math.min(...namedTeams.map(team => team.avgRating)),
+        ratingBalance: calculateRatingSpread(namedTeams),
         positionBalance: computePositionBalance(namedTeams)
     };
 }
+const BALANCE_EPSILON = 1e-9;
 function chooseBestCandidate(candidates) {
     // Prioritize rating balance first, then position balance as tiebreaker
-    candidates.sort((a, b) => a.ratingBalance !== b.ratingBalance
+    candidates.sort((a, b) => Math.abs(a.ratingBalance - b.ratingBalance) > BALANCE_EPSILON
         ? a.ratingBalance - b.ratingBalance
         : a.positionBalance - b.positionBalance);
     const bestRatingBalance = candidates[0].ratingBalance;
-    const ratingFair = candidates.filter(candidate => candidate.ratingBalance === bestRatingBalance);
+    const ratingFair = candidates.filter(candidate => candidate.ratingBalance - bestRatingBalance <= BALANCE_EPSILON);
     const topN = Math.min(5, ratingFair.length);
     return ratingFair[Math.floor(Math.random() * topN)] || candidates[0];
 }
@@ -238,11 +212,51 @@ function applyCaptains(teams) {
         };
     });
 }
+/**
+ * Checks that every input player appears exactly once across the teams.
+ * Returns a list of problems (empty when the assignment is valid).
+ */
+function validateTeamAssignment(players, teams) {
+    const countNames = (list) => {
+        const counts = new Map();
+        for (const p of list)
+            counts.set(p.name, (counts.get(p.name) || 0) + 1);
+        return counts;
+    };
+    const expected = countNames(players);
+    const actual = countNames(teams.flatMap(team => team.players));
+    const problems = [];
+    for (const [name, count] of expected) {
+        const got = actual.get(name) || 0;
+        if (got === 0)
+            problems.push(`missing: ${name}`);
+        else if (got > count)
+            problems.push(`duplicated: ${name} (x${got})`);
+    }
+    for (const name of actual.keys()) {
+        if (!expected.has(name))
+            problems.push(`unexpected: ${name}`);
+    }
+    return problems;
+}
+const MAX_BALANCE_ATTEMPTS = 5;
+// Never return a result that drops or duplicates a player; retry, then fail loudly.
 function balanceTeams(players) {
+    let problems = [];
+    for (let attempt = 1; attempt <= MAX_BALANCE_ATTEMPTS; attempt++) {
+        const result = buildBalanceResult(players);
+        problems = validateTeamAssignment(players, result.teams);
+        if (problems.length === 0)
+            return result;
+        console.error(`❌ Invalid team assignment (attempt ${attempt}/${MAX_BALANCE_ATTEMPTS}): ${problems.join(', ')}`);
+    }
+    throw new Error(`Team balancing produced an invalid assignment: ${problems.join(', ')}`);
+}
+function buildBalanceResult(players) {
     if (players.length < 2) {
         throw new Error('Need at least 2 players to form teams');
     }
-    if (players.length <= 27) {
+    if (players.length < exports.FOUR_TEAM_MIN_PLAYERS) {
         const attemptCount = Math.max(50, players.length * 5);
         const candidates = [];
         for (let attempt = 0; attempt < attemptCount; attempt++) {
